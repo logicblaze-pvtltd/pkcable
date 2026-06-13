@@ -1,0 +1,43 @@
+    /* Smooth transitions and custom date picker enhancements */
+    *:focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
+    /* Hide default date picker arrow in some browsers if we want consistent? no, we keep native but overlay design */
+    /* For custom calendar popup we use a simulated floating panel, but preserve input functionality optionally? 
+       Actually we implement a fully custom JS datepicker + input binding for better UI control across all devices.
+       Approach: A styled input that opens a custom calendar modal on click (responsive). Also ensures mobile friendly touch. 
+    */
+    /* Custom transition for calendar panel */
+    .calendar-transition {
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+    /* simple day cell hover effect */
+    .day-cell {
+      transition: all 0.15ms ease;
+    }
+
+    /* Give subscription date inputs extra left/right padding so the calendar icon
+       and clear button never overlap the text, even after custom modal-input styles. */
+    #sub-start-date-display,
+    #sub-end-date-display {
+      padding-left: 3.5rem !important;
+      padding-right: 3rem !important;
+    }
+
+    /* Keep subscription date pickers above the subscription modal shell. */
+    #sub-start-cal-modal,
+    #sub-end-cal-modal {
+      z-index: 10050 !important;
+    }
+
+    #sub-start-cal-panel,
+    #sub-end-cal-panel {
+      position: relative;
+      z-index: 10051;
+    }
+
+    /* disable text selection on buttons */
+    .no-select {
+      user-select: none;
+    }

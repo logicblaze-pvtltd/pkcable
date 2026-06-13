@@ -1,0 +1,132 @@
+@import url('../../node_modules/@fontsource/ibm-plex-sans/index.css');
+
+/* === Prevent flash of unstyled transitions on load === */
+.no-transition,
+.no-transition * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* === Global Styles === */
+html {
+    overflow-x: hidden;
+}
+body {
+    overflow-x: hidden;
+
+  background: #f3f4f4;
+  margin: 0;
+  overflow-x: hidden;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+html {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+.dark body,
+.dark html {
+  scrollbar-color: #64748b #0f172a;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid #e2e8f0;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark * {
+  scrollbar-color: #64748b #0f172a;
+}
+
+.dark *::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-color: #0f172a;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Force PerfectScrollbar to take over */
+.ps {
+  overflow: hidden !important;
+  touch-action: auto;
+  -ms-overflow-style: none;
+}
+
+/* Track (rail) */
+.ps__rail-y {
+  position: absolute;
+  right: 2px;
+  width: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* Thumb (scroll handle) */
+.ps__thumb-y {
+  background-color: #c1c1c1;
+  border-radius: 6px;
+  width: 6px;
+}
+
+/* Show scrollbar on hover */
+.ps-container:hover .ps__rail-y {
+  opacity: 1;
+}
+
+/* Submenu transitions */
+.submenu-content {
+    transition-property: max-height, opacity, padding;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Wave label letters */
+.wave-letter {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+/* Group hover interactions for animated links */
+.animated-link-group:hover .orig-letter {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+.animated-link-group:hover .new-letter {
+    transform: translateY(0);
+    opacity: 1;
+}
+.swal2-container {
+    z-index: 99999 !important;
+}

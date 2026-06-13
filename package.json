@@ -1,0 +1,20 @@
+{
+  "name": "pakistan-cable",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:css": "tailwindcss -i ./assets/css/tailwind-input.css -o ./assets/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./assets/css/tailwind-input.css -o ./assets/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-sans": "^5.2.8",
+    "@fortawesome/fontawesome-free": "^7.2.0",
+    "lucide": "^1.17.0",
+    "perfect-scrollbar": "^1.5.6",
+    "simple-datatables": "^10.2.0",
+    "sweetalert2": "^11.26.25"
+  }
+}

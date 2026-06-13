@@ -1,0 +1,87 @@
+/* Breadcrumbs Styling */
+.breadcrumbs-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.breadcrumb-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 8px;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breadcrumb-link {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+.dark .breadcrumb-link {
+    color: #60a5fa;
+}
+
+.dark .breadcrumb-link:hover {
+    color: #93c5fd;
+}
+
+.breadcrumb-separator {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.dark .breadcrumb-separator {
+    color: #6b7280;
+}
+
+.breadcrumb-current {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.dark .breadcrumb-current {
+    color: #d1d5db;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .breadcrumbs-container {
+        font-size: 12px;
+        padding: 8px 0;
+        margin-bottom: 12px;
+    }
+
+    .breadcrumb-item {
+        gap: 6px;
+    }
+
+    .breadcrumbs-container .breadcrumb-list {
+        gap: 6px;
+    }
+
+    /* Hide intermediate breadcrumbs on mobile, show first and last */
+    .breadcrumb-item:nth-child(n+2):nth-last-child(n+2) {
+        display: none;
+    }
+
+    .breadcrumb-item:nth-child(2) {
+        display: flex;
+    }
+}

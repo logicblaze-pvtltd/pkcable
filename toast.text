@@ -1,0 +1,22 @@
+<button type="button" class="mobile-row-toggle inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500">
+    <i data-lucide="chevron-down" class="mobile-row-chevron w-4 h-4 transition-transform duration-200"></i>
+</button>
+table.addEventListener('click', function (e) {
+    const mobileToggle = e.target.closest('.mobile-row-toggle');
+    if (mobileToggle) {
+        const row = mobileToggle.closest('tr');
+        const chevron = row?.querySelector('.mobile-row-chevron');
+        const nextRow = row?.nextElementSibling;
+        const isOpen = nextRow && nextRow.classList.contains('details-row');
+
+        if (isOpen) {
+            nextRow.remove();
+            chevron?.classList.remove('rotate-180');
+        } else {
+            const d = parseRow(row);
+            row.insertAdjacentHTML('afterend', buildDetailsRow(d));
+            chevron?.classList.add('rotate-180');
+            if (typeof lucide !== 'undefined') lucide.createIcons(); // Icons refresh
+        }
+    }
+});

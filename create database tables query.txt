@@ -1,0 +1,48 @@
+------------------------------------------
+		Packages Table
+------------------------------------------
+create table packages(
+id int not null auto_increment,
+name varchar(255) not null,
+price varchar(255) not null,
+
+primary key (id)
+)Engine = InnoDB;
+==========================================
+------------------------------------------
+	   	Users Table
+------------------------------------------
+create table users(
+id int not null auto_increment,
+name varchar(255) null,
+email varchar(255) null,
+password varchar(255) null,
+user_role enum ('super admin','admin', 'manager', 'customer'),
+status enum('active','inactive'),
+package int null,
+address text null,
+created_at datetime default current_timestamp,
+primary key (id),
+foreign key (package) references packages (id)
+)Engine = InnoDB;
+==========================================
+------------------------------------------
+	   Subscriptions Table
+------------------------------------------
+create table subscriptions(
+id int not null auto_increment,
+user_id int not null,
+package_id int not null,
+start_date date null,
+end_date date null,
+status ENUM(
+    'active',
+    'expired',
+    'cancelled'
+),
+discount varchar(255),
+created_at datetime default current_timestamp,
+primary key (id),
+foreign key (user_id) references users(id),
+foreign key (package_id) references packages(id)
+)Engine = InnoDB;
