@@ -5,6 +5,10 @@ if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();
 }
+if($_SESSION['user']['role'] === 'customer') {
+    header("Location: access_denied.php");
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

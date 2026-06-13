@@ -44,48 +44,54 @@
                 <a href="#" class="block w-full text-left px-6 py-2.5 hover:bg-blue-100 dark:hover:bg-gray-700 text-sm text-gray-600 dark:text-gray-400 font-medium transition-colors duration-200" style="transform: translateY(-10px);">Interns</a>
             </div>
         </div> -->
-
-        <a href="packages.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'packages' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
-            <div class="flex items-center">
-                <span class="flex items-center justify-center w-8"><i data-lucide="package" class="w-[18px] h-[18px]"></i></span>
-                <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Packages"></div>
-            </div>
-        </a>
-
-        <a href="customers.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'customers' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
-            <div class="flex items-center">
-                <span class="flex items-center justify-center w-8"><i data-lucide="users" class="w-[18px] h-[18px]"></i></span>
-                <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Customers"></div>
-            </div>
-        </a>
         <?php
-        if($_SESSION['user']['role'] === 'super admin' || $_SESSION['user']['role'] === 'admin') {
+        if ($_SESSION['user']['role'] !== 'customer') {
         ?>
-        <a href="managers.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'managers' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
-            <div class="flex items-center">
-                <span class="flex items-center justify-center w-8"><i data-lucide="user-cog" class="w-[18px] h-[18px]"></i></span>
-                <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Managers"></div>
-            </div>
-        </a>
+            <a href="packages.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'packages' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="package" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Packages"></div>
+                </div>
+            </a>
+
+            <a href="customers.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'customers' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="users" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Customers"></div>
+                </div>
+            </a>
         <?php
         }
-        if($_SESSION['user']['role'] === 'super admin') {
+        if ($_SESSION['user']['role'] === 'super admin' || $_SESSION['user']['role'] === 'admin') {
         ?>
-        <a href="admins.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'admins' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
-            <div class="flex items-center">
-                <span class="flex items-center justify-center w-8"><i data-lucide="shield" class="w-[18px] h-[18px]"></i></span>
-                <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Admins"></div>
-            </div>
-        </a>
+            <a href="managers.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'managers' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="user-cog" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Managers"></div>
+                </div>
+            </a>
         <?php
         }
-         ?>
-        <a href="subscriptions.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'subscriptions' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
-            <div class="flex items-center">
-                <span class="flex items-center justify-center w-8"><i data-lucide="shopping-bag" class="w-[18px] h-[18px]"></i></span>
-                <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Subscriptions"></div>
-            </div>
-        </a>
-
+        if ($_SESSION['user']['role'] === 'super admin') {
+        ?>
+            <a href="admins.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'admins' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="shield" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Admins"></div>
+                </div>
+            </a>
+        <?php
+        }
+        if ($_SESSION['user']['role'] !== 'customer') {
+        ?>
+            <a href="subscriptions.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'subscriptions' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="shopping-bag" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Subscriptions"></div>
+                </div>
+            </a>
+        <?php
+        }
+        ?>
     </nav>
 </aside>
