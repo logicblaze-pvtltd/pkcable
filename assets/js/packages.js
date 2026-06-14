@@ -35,6 +35,7 @@ const runWithButtonLoading = (button, label, action) => {
     let activeRow = null;
     let deleteRow = null;
     let dataTable = window.packagesDataTable || null;
+    const apiBase = `${window.APP_URL || ''}/controller/package`;
 
     function lockBody(lock) {
         document.body.style.overflow = lock ? 'hidden' : 'auto';
@@ -396,7 +397,7 @@ const runWithButtonLoading = (button, label, action) => {
         }
         return runWithButtonLoading(savePackageBtn, modalMode === 'create' ? 'Saving Package...' : 'Updating Package...', function () {
             if (modalMode === 'create') {
-            fetch('http://localhost/pakistan-cable/controller/package/create.php', {
+            fetch(`${apiBase}/create.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -472,7 +473,7 @@ const runWithButtonLoading = (button, label, action) => {
             }
 
             if (modalMode === 'edit' && activeRow) {
-            fetch('http://localhost/pakistan-cable/controller/package/update.php', {
+            fetch(`${apiBase}/update.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -570,7 +571,7 @@ const runWithButtonLoading = (button, label, action) => {
         const packageId = extractNumericPackageId(data?.id);
 
         if (deleteRow && packageId !== null) {
-            fetch('http://localhost/pakistan-cable/controller/package/delete.php', {
+            fetch(`${apiBase}/delete.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

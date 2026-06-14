@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewMonth = document.getElementById('sub-view-month');
     const viewStatus = document.getElementById('sub-view-status');
 
-    const subApiBase = 'http://localhost/pakistan-cable/controller/subscription';
+    const subApiBase = `${window.APP_URL || ''}/controller/subscription`;
     const runWithButtonLoading = (button, label, action) => {
         if (window.AppButtonLoading?.withButtonLoading) {
             return window.AppButtonLoading.withButtonLoading(button, action, { label });

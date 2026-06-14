@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const subEndCalCancel = document.getElementById('sub-end-cal-cancel');
     const subEndCalToday = document.getElementById('sub-end-cal-today');
 
-    const customerApiBase = 'http://localhost/pakistan-cable/controller/customer';
+    const customerApiBase = `${window.APP_URL || ''}/controller/customer`;
 
     let modalMode = 'create';
     let activeRow = null;
@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshTable();
     }
 
-    const subscriptionApiBase = 'http://localhost/pakistan-cable/controller/subscription';
+    const subscriptionApiBase = `${window.APP_URL || ''}/controller/subscription`;
     let pendingSubscriptionCustomer = null;
     let pendingSubscriptionRow = null;
     let subscriptionStartPicker = null;

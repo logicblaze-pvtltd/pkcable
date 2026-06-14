@@ -101,7 +101,7 @@ function safe($value, $default = '') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?php $appName = getenv('APP_NAME') ?: 'AppName'; ?>
+    <?php $appName = get_env_value('APP_NAME') ?: 'AppName'; ?>
     <title><?= safe($appName) ?> - Dashboard</title>
 
     <!-- header links -->

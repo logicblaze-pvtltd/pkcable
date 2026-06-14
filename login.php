@@ -7,7 +7,7 @@ require_once './include/connection.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?php $appName = getenv('APP_NAME') ?: ''; ?>
+    <?php $appName = get_env_value('APP_NAME') ?: 'Pakistan Cable'; ?>
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> - Sign In</title>
     <?php include './include/headerLinks.php' ?>
     <link rel="stylesheet" href="./assets//css//login.css">

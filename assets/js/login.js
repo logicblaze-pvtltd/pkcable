@@ -11,7 +11,7 @@ const formErrorText = document.getElementById('form-error-text');
 const submitBtn = document.getElementById('submit-btn');
 const withButtonLoading = window.AppButtonLoading?.withButtonLoading;
 
-const API_URL = 'http://localhost/pakistan-cable/controller/auth/login.php'; // adjust if needed
+const API_URL = `${window.APP_URL || ''}/controller/auth/login.php`; // adjust if needed
 
 // â”€â”€â”€ Error Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const setInputError = (input, errorEl, msg) => {
@@ -87,7 +87,7 @@ form.addEventListener('submit', async (e) => {
             localStorage.setItem('token', data.data.token);
         }
 
-        window.location.href = 'http://localhost/pakistan-cable/index.php';
+        window.location.href = `${window.APP_URL || ''}/index.php`;
     };
 
     try {

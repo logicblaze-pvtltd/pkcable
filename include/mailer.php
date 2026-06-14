@@ -13,12 +13,12 @@ class SmtpMailer
 
     public function __construct()
     {
-        $this->host = getenv('MAIL_HOST') ?: 'smtp.gmail.com';
-        $this->port = (int) (getenv('MAIL_PORT') ?: 587);
-        $this->username = getenv('MAIL_USERNAME') ?: '';
-        $this->password = getenv('MAIL_PASSWORD') ?: '';
-        $this->fromEmail = getenv('MAIL_FROM') ?: $this->username;
-        $this->fromName = getenv('MAIL_FROM_NAME') ?: (getenv('APP_NAME') ?: 'Pakistan Cable');
+        $this->host = get_env_value('MAIL_HOST', 'smtp.gmail.com');
+        $this->port = (int) get_env_value('MAIL_PORT', 587);
+        $this->username = get_env_value('MAIL_USERNAME', '');
+        $this->password = get_env_value('MAIL_PASSWORD', '');
+        $this->fromEmail = get_env_value('MAIL_FROM', $this->username);
+        $this->fromName = get_env_value('MAIL_FROM_NAME', get_env_value('APP_NAME', 'Pakistan Cable'));
     }
 
     public function isConfigured(): bool
@@ -231,7 +231,7 @@ class SmtpMailer
 
 function app_base_url(): string
 {
-    $configured = getenv('APP_URL');
+    $configured = get_env_value('APP_URL');
 
     if ($configured) {
         return rtrim($configured, '/');
@@ -283,7 +283,7 @@ function mail_normalize_package_details(array $details = []): array
 
 function send_customer_welcome_email(string $name, string $email, string $password, array $packageDetails = []): array
 {
-    $appName = getenv('APP_NAME') ?: 'Pakistan Cable';
+    $appName = get_env_value('APP_NAME', 'Pakistan Cable');
     $baseUrl = app_base_url();
     $dashboardUrl = $baseUrl . '/index.php';
     $package = mail_normalize_package_details($packageDetails);

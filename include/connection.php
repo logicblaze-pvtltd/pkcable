@@ -10,8 +10,9 @@ $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        // Skip comments
-        if (strpos($line, '#') === 0) {
+        $line = trim($line);
+        // Skip comments and empty lines
+        if ($line === '' || strpos($line, '#') === 0) {
             continue;
         }
 
@@ -21,28 +22,74 @@ if (file_exists($envFile)) {
             $key = trim($key);
             $value = trim($value);
             
+            // Strip inline comments if they exist (e.g. DB_HOST=localhost # database host)
+            if (strpos($value, '#') !== false) {
+                if (!preg_match('/^[\'"]/', $value)) {
+                    $parts = explode('#', $value, 2);
+                    $value = trim($parts[0]);
+                }
+            }
+
+            // Strip enclosing quotes if they exist (both single and double)
+            if (preg_match('/^([\'"])(.*)\1$/', $value, $matches)) {
+                $value = $matches[2];
+            }
+            
             // Set as environment variable
-            putenv("$key=$value");
+            if (function_exists('putenv')) {
+                @putenv("$key=$value");
+            }
             $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
         }
     }
 }
 
+/**
+ * Robust helper to retrieve environment variables on any hosting server.
+ * Fallbacks to $_ENV and $_SERVER if putenv() or getenv() is disabled.
+ */
+if (!function_exists('get_env_value')) {
+    function get_env_value($key, $default = '') {
+        if (isset($_ENV[$key])) {
+            return $_ENV[$key];
+        }
+        if (isset($_SERVER[$key])) {
+            return $_SERVER[$key];
+        }
+        $val = getenv($key);
+        return $val !== false ? $val : $default;
+    }
+}
+
 // Database configuration from .env
-$db_host = getenv('DB_HOST') ?: 'localhost';
-$db_port = getenv('DB_PORT') ?: 3306;
-$db_user = getenv('DB_USER') ?: 'root';
-$db_password = getenv('DB_PASSWORD') ?: '';
-$db_name = getenv('DB_NAME') ?: 'pkcable';
+$db_host = get_env_value('DB_HOST', 'localhost');
+$db_port = get_env_value('DB_PORT', 3306);
+$db_user = get_env_value('DB_USER', 'root');
+$db_password = get_env_value('DB_PASSWORD', '');
+$db_name = get_env_value('DB_NAME', 'pkcable');
 
-// Create MySQLi connection
-$conn = new mysqli($db_host, $db_user, $db_password, $db_name, $db_port);
 
-// Check connection
-if ($conn->connect_error) {
-    die('<div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px; margin: 20px;">
-        <strong>Database Connection Error:</strong> ' . $conn->connect_error . '
-        <br><small>Check your .env file configuration</small>
+// Create MySQLi connection with try-catch for PHP 8.1+ compatibility
+try {
+    $conn = new mysqli($db_host, $db_user, $db_password, $db_name, $db_port);
+    
+    // Check connection (for older PHP versions where exception is not thrown)
+    if ($conn->connect_error) {
+        throw new Exception($conn->connect_error);
+    }
+} catch (Exception $e) {
+    die('<div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 16px; border-radius: 6px; margin: 20px; font-family: Arial, sans-serif; line-height: 1.5;">
+        <strong style="font-size: 16px;">Database Connection Error:</strong> ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '
+        <br><br>
+        <strong style="color: #58151c;">What to do:</strong>
+        <p style="margin: 5px 0;">Please check your <strong>.env</strong> file on your live hosting server and verify the following credentials:</p>
+        <ul style="margin: 5px 0 0 20px; padding: 0;">
+            <li><strong>DB_HOST</strong>: Live database hostname (For ByetHost, it is usually like <code>sqlXXX.byethost11.com</code> instead of <code>localhost</code>).</li>
+            <li><strong>DB_USER</strong>: Your database user name (For ByetHost, e.g. <code>b11_XXXXXXXX</code>).</li>
+            <li><strong>DB_PASSWORD</strong>: Your hosting password or specific database password.</li>
+            <li><strong>DB_NAME</strong>: Your database name (For ByetHost, e.g. <code>b11_XXXXXXXX_pkcable</code>).</li>
+        </ul>
     </div>');
 }
 

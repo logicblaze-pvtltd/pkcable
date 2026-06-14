@@ -148,7 +148,7 @@ if (isset($packages['error'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?php $appName = getenv('APP_NAME') ?>
+    <?php $appName = get_env_value('APP_NAME') ?>
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> - Customers</title>
 
     <!-- header links -->
