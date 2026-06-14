@@ -13,7 +13,6 @@ const withButtonLoading = window.AppButtonLoading?.withButtonLoading;
 
 const API_URL = `${window.APP_URL || ''}/controller/auth/login.php`; // adjust if needed
 
-// â”€â”€â”€ Error Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const setInputError = (input, errorEl, msg) => {
     input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
     input.classList.remove('focus:border-blue-400', 'focus:ring-blue-400');
@@ -30,7 +29,6 @@ const clearInputError = (input, errorEl) => {
 emailInput.addEventListener('input', () => clearInputError(emailInput, emailError));
 passwordInput.addEventListener('input', () => clearInputError(passwordInput, passwordError));
 
-// â”€â”€â”€ Global Error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showFormError(msg) {
     formErrorText.textContent = msg;
     formError.classList.remove('hidden');
@@ -41,7 +39,6 @@ function hideFormError() {
     formErrorText.textContent = '';
 }
 
-// â”€â”€â”€ Submit Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     hideFormError();

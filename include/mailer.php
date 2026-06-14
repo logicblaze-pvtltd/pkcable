@@ -357,8 +357,8 @@ HTML;
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; background: #f9fafb; margin: 0; padding: 24px;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px;">
         <h2 style="margin-top: 0; color: #111827;">Welcome to {$safeAppName}</h2>
-        <p>Hello {$safeName},</p>
-        <p>Your customer account has been created successfully. You can use the details below to sign in.</p>
+        <p>Assalam O Alaikum {$safeName},</p>
+        <p>Your account has been created successfully. You can use the details below to sign in.</p>
 
         <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <h3 style="margin: 0 0 12px; color: #111827; font-size: 16px;">Login Details</h3>
@@ -377,7 +377,7 @@ HTML;
 HTML;
 
     $textBody = "Welcome to {$appName}\n\n"
-        . "Hello {$name},\n\n"
+        . "Assalam O Alaikum {$name},\n\n"
         . "Your customer account has been created successfully.\n\n"
         . "Login Details:\n"
         . "Dashboard URL: {$dashboardUrl}\n"
@@ -391,3 +391,155 @@ HTML;
 
     return $mailer->send($email, $subject, $htmlBody, $textBody);
 }
+
+function send_subscription_notification_email(string $name, string $email, string $actionType, array $packageDetails = []): array
+{
+    $appName = get_env_value('APP_NAME', 'Pakistan Cable');
+    $package = mail_normalize_package_details($packageDetails);
+
+    $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    $safeEmail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+    $safeAppName = htmlspecialchars($appName, ENT_QUOTES, 'UTF-8');
+    $safePackageName = htmlspecialchars($package['package_name'], ENT_QUOTES, 'UTF-8');
+    $safePackagePrice = htmlspecialchars($package['package_price'], ENT_QUOTES, 'UTF-8');
+    $safeDiscount = htmlspecialchars($package['discount'], ENT_QUOTES, 'UTF-8');
+    $safePaidAmount = htmlspecialchars($package['paid_amount'], ENT_QUOTES, 'UTF-8');
+    $safeStartDate = htmlspecialchars($package['start_date'], ENT_QUOTES, 'UTF-8');
+    $safeEndDate = htmlspecialchars($package['end_date'], ENT_QUOTES, 'UTF-8');
+
+    $actionWord = ($actionType === 'activated') ? 'activated' : 'created';
+    $subject = 'Your ' . $appName . ' subscription has been ' . $actionWord;
+
+    $subscriptionPeriodHtml = '';
+    $subscriptionPeriodText = '';
+
+    if ($package['start_date'] !== '' && $package['end_date'] !== '') {
+        $subscriptionPeriodHtml = '<p style="margin: 0 0 8px;"><strong>Subscription Period:</strong> '
+            . $safeStartDate . ' to ' . $safeEndDate . '</p>';
+        $subscriptionPeriodText = "Subscription Period: {$package['start_date']} to {$package['end_date']}\n";
+    }
+    $discountLine = '';
+
+    if (
+        isset($safeDiscount) &&
+        $safeDiscount !== '' &&
+        $safeDiscount !== null &&
+        trim(str_replace(['Rs.', 'rs.', 'RS.'], '', $safeDiscount)) !== '' &&
+        floatval(str_replace(['Rs.', ',', ' '], '', $safeDiscount)) > 0
+    ) {
+        $discountLine = "<p style='margin: 0 0 8px;'><strong>Discount:</strong> {$safeDiscount}</p>";
+    }
+    $packageHtml = <<<HTML
+        <div style="background: #eff6ff; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <h3 style="margin: 0 0 12px; color: #1d4ed8; font-size: 16px;">Subscription Details</h3>
+            <p style="margin: 0 0 8px;"><strong>Package Name:</strong> {$safePackageName}</p>
+            <p style="margin: 0 0 8px;"><strong>Package Price:</strong> {$safePackagePrice}</p>
+            {$discountLine}
+            <p style="margin: 0 0 8px;"><strong>Paid Amount:</strong> {$safePaidAmount}</p>
+            {$subscriptionPeriodHtml}
+        </div>
+HTML;
+
+    $discount = trim($package['discount']);
+
+    $packageText = "Subscription Details:\n"
+        . "Package Name: {$package['package_name']}\n"
+        . "Package Price: {$package['package_price']}\n"
+        . ($discount !== '0' && $discount !== 'Rs.0' && !empty($discount) ? "Discount: {$package['discount']}\n" : "")
+        . "Paid Amount: {$package['paid_amount']}\n"
+        . $subscriptionPeriodText;
+
+    $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{$safeAppName} Subscription</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; background: #f9fafb; margin: 0; padding: 24px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px;">
+        <h2 style="margin-top: 0; color: #111827;">Subscription {$actionWord}</h2>
+        <p>Assalam O Alaikum {$safeName},</p>
+        <p>Your subscription to <strong>{$safeAppName}</strong> has been successfully {$actionWord}.</p>
+
+        {$packageHtml}
+
+        <p>Thank you for choosing {$safeAppName}!</p>
+        <p style="margin-bottom: 0;">Regards,<br>{$safeAppName} Team</p>
+    </div>
+</body>
+</html>
+HTML;
+
+    $textBody = "Subscription {$actionWord}\n\n"
+        . "Assalam O Alaikum {$name},\n\n"
+        . "Your subscription to {$appName} has been successfully {$actionWord}.\n\n"
+        . $packageText
+        . "\nThank you for choosing {$appName}!\n\n"
+        . "Regards,\n{$appName} Team";
+
+    $mailer = new SmtpMailer();
+
+    return $mailer->send($email, $subject, $htmlBody, $textBody);
+}
+
+function send_expiry_alert_email(string $name, string $email, string $packageName, int $leftDays, string $endDate): array
+{
+    $appName = get_env_value('APP_NAME', 'Pakistan Cable');
+    $baseUrl = app_base_url();
+    $renewUrl = $baseUrl . '/index.php';
+
+    $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    $safeEmail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+    $safeAppName = htmlspecialchars($appName, ENT_QUOTES, 'UTF-8');
+    $safePackageName = htmlspecialchars($packageName, ENT_QUOTES, 'UTF-8');
+    $safeEndDate = htmlspecialchars($endDate, ENT_QUOTES, 'UTF-8');
+    $safeRenewUrl = htmlspecialchars($renewUrl, ENT_QUOTES, 'UTF-8');
+
+    $daysText = $leftDays === 1 ? '1 day' : $leftDays . ' days';
+    $subject = 'Action Required: Your ' . $appName . ' subscription is expiring soon';
+
+    $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{$safeAppName} Subscription Expiring Soon</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; background: #f9fafb; margin: 0; padding: 24px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="display: inline-block; background: #fffbeb; border-radius: 50%; padding: 12px; color: #d97706;">
+                <span style="font-size: 30px; font-weight: bold;">⚠️</span>
+            </div>
+        </div>
+        
+        <h2 style="margin-top: 0; color: #111827; text-align: center;">Subscription Expiring Soon</h2>
+        <p>Assalam O Alaikum {$safeName},</p>
+        <p>This is a friendly reminder that your subscription for <strong>{$safePackageName}</strong> Internet Package is expiring in <strong style="color: #d97706;">{$daysText}</strong> on <strong>{$safeEndDate}</strong>.</p>
+
+        <div style="background: #fdf2f8; border-left: 4px solid #db2777; border-radius: 4px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0; color: #9d174d; font-size: 14px;">
+                To avoid any service interruption, please contact our support team to activate your subscription before it expires.
+            </p>
+        </div>
+
+        <p>If you have already renewed or paid for your next subscription, please disregard this email.</p>
+        <p style="margin-bottom: 0;">Regards,<br>{$safeAppName} Team</p>
+    </div>
+</body>
+</html>
+HTML;
+
+    $textBody = "Subscription Expiring Soon\n\n"
+        . "Assalam O Alaikum {$name},\n\n"
+        . "This is a friendly reminder that your subscription for {$packageName} is expiring in {$daysText} on {$endDate}.\n\n"
+        . "To avoid any service interruption, please log in to your dashboard at {$renewUrl} and renew/activate your subscription before it expires.\n\n"
+        . "Regards,\n{$appName} Team";
+
+    $mailer = new SmtpMailer();
+
+    return $mailer->send($email, $subject, $htmlBody, $textBody);
+}
+
+

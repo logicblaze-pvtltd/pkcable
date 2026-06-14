@@ -1,5 +1,5 @@
 <?php
-require_once './include/connect.php';
+require_once __DIR__ . '/../include/connection.php';
 
 $logFile = __DIR__ . '/subscription_expired.log';
 

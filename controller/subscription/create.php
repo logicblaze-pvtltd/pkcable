@@ -122,6 +122,7 @@ try {
             s.id,
             s.package_id,
             u.name AS name,
+            u.email AS email,
             p.name AS package_name,
             p.price AS package_price,
             s.discount,
@@ -173,6 +174,29 @@ try {
                 if (!$emailSent) {
                     $responseMessage = 'Subscription created successfully, but welcome email could not be sent';
                 }
+            }
+        }
+    } else {
+        if (!empty($row['email'])) {
+            $emailResult = send_subscription_notification_email(
+                (string) ($row['name'] ?? ''),
+                (string) $row['email'],
+                'created',
+                [
+                    'package_name' => $row['package_name'] ?? '',
+                    'package_price' => $row['package_price'] ?? 0,
+                    'discount' => $row['discount'] ?? 0,
+                    'paid_amount' => $row['paid_amount'] ?? null,
+                    'start_date' => $row['start_date'] ?? '',
+                    'end_date' => $row['end_date'] ?? '',
+                ]
+            );
+
+            $emailSent = !empty($emailResult['success']);
+            $emailError = $emailResult['error'] ?? null;
+
+            if (!$emailSent) {
+                $responseMessage = 'Subscription created successfully, but notification email could not be sent';
             }
         }
     }

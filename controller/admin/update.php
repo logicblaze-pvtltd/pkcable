@@ -84,6 +84,7 @@ try {
     }
 
     admin_respond(true, 'Admin updated successfully', $updatedUser);
+    
 } catch (Exception $e) {
     admin_respond(false, 'Server Error: ' . $e->getMessage(), [
         'file' => $e->getFile(),

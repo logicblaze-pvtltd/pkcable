@@ -7,10 +7,11 @@ require_once './include/connection.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon_io/favicon.ico">
     <?php $appName = get_env_value('APP_NAME') ?: 'Pakistan Cable'; ?>
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> - Sign In</title>
     <?php include './include/headerLinks.php' ?>
-    <link rel="stylesheet" href="./assets//css//login.css">
+    <link rel="stylesheet" href="./assets/css/login.css">
 </head>
 
 <body class="bg-gray-900 dark:bg-gray-900 h-screen overflow-hidden transition-colors duration-500">
@@ -261,6 +262,7 @@ require_once './include/connection.php';
     </div>
     <script src="./assets/js/button-loading.js"></script>
     <script src="./assets/js/login.js"></script>
+    <script src="./assets/js/passwordShowHide.js"></script>
 </body>
 
 </html>

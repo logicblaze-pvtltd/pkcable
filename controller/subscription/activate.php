@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 include '../../include/connection.php';
+require_once '../../include/mailer.php';
+
 
 function respond($status, $message, $data = [], $httpCode = 200)
 {
@@ -106,6 +108,7 @@ try {
         SELECT
             s.id,
             u.name AS name,
+            u.email AS email,
             p.name AS package_name,
             p.price AS package_price,
             s.discount,
@@ -126,7 +129,39 @@ try {
     $result = $fetch->get_result();
     $row = $result->fetch_assoc();
 
-    respond(true, 'Subscription activated successfully', $row ?? ['id' => $new_id]);
+    $emailSent = false;
+    $emailError = null;
+    $responseMessage = 'Subscription activated successfully';
+
+    if ($row && !empty($row['email'])) {
+        $emailResult = send_subscription_notification_email(
+            (string) ($row['name'] ?? ''),
+            (string) $row['email'],
+            'activated',
+            [
+                'package_name' => $row['package_name'] ?? '',
+                'package_price' => $row['package_price'] ?? 0,
+                'discount' => $row['discount'] ?? 0,
+                'paid_amount' => $row['paid_amount'] ?? null,
+                'start_date' => $row['start_date'] ?? '',
+                'end_date' => $row['end_date'] ?? '',
+            ]
+        );
+
+        $emailSent = !empty($emailResult['success']);
+        $emailError = $emailResult['error'] ?? null;
+
+        if (!$emailSent) {
+            $responseMessage = 'Subscription activated successfully, but notification email could not be sent';
+        }
+    }
+
+    if ($row) {
+        $row['email_sent'] = $emailSent;
+        $row['email_error'] = $emailError;
+    }
+
+    respond(true, $responseMessage, $row ?? ['id' => $new_id]);
 } catch (Exception $e) {
     respond(false, 'Server Error: ' . $e->getMessage(), [
         'file' => $e->getFile(),

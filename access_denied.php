@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restricted Portal</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon_io/favicon.ico">
+    <title> Pakistan - Restricted Portal</title>
     <link rel="stylesheet" href="assets/css/tailwind.css">
 </head>
 <body class="bg-[#f8fafc] dark:bg-slate-900 min-h-screen flex items-center justify-center overflow-hidden relative font-sans text-slate-600 dark:text-slate-400 antialiased p-4 transition-colors duration-300">

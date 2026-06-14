@@ -14,9 +14,9 @@ if (!isset($_SESSION['user'])) {
     <?php require_once './include/connection.php'; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?php $appName = get_env_value('APP_NAME') ?: ''; ?>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon_io/favicon.ico">
+    <?php $appName = get_env_value('APP_NAME') ?: 'Pakistan Cable'; ?>
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> - Dashboard</title>
-
     <!-- header links -->
     <?php include "./include/headerLinks.php" ?>
     <link rel="stylesheet" href="assets/css/datePicker.css">
@@ -671,7 +671,7 @@ if (!isset($_SESSION['user'])) {
                                         </div>
                                         <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No subscription history found</h4>
                                         <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                                            You haven't subscribed to any packages yet. 
+                                            You haven't subscribed to any packages yet.
                                         </p>
                                     </div>
                                 <?php else: ?>

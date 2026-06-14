@@ -77,7 +77,16 @@
                          </button>
                      </div>
                      <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                         <a href="./controller/auth/logout.php" class="flex justify-center items-center gap-2 w-full px-4 py-2 text-sm text-white rounded-md transition-opacity font-medium bg-red-500 hover:opacity-90">
+                         <a href="./controller/auth/logout.php"
+                             onclick="
+                                    const withButtonLoading = window.AppButtonLoading?.withButtonLoading;
+                                    if (typeof withButtonLoading === 'function') {
+                                        event.preventDefault();
+                                        const url = this.href;
+                                        withButtonLoading(this, () => new Promise(res => setTimeout(() => { window.location.href = url; res(); }, 600)), { label: 'Logging out...' });
+                                    }
+                                "
+                             class="flex justify-center items-center gap-2 w-full px-4 py-2 text-sm text-white rounded-md transition-opacity font-medium bg-red-500 hover:opacity-90">
                              <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> Logout
                          </a>
                      </div>
