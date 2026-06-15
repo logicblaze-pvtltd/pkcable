@@ -150,7 +150,7 @@ try {
         );
 
         $emailSent = !empty($emailResult['success']);
-        $emailError = $emailResult['error'] ?? null;
+        $emailError     = $emailResult['error'] ?? null;
 
         if (!$emailSent) {
             $responseMessage = 'Subscription activated successfully, but notification email could not be sent';

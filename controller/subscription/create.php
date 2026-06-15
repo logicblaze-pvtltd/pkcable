@@ -182,7 +182,7 @@ try {
             $emailResult = send_subscription_notification_email(
                 (string) ($row['name'] ?? ''),
                 (string) $row['email'],
-                'created',
+                'activated',
                 [
                     'package_name' => $row['package_name'] ?? '',
                     'package_price' => $row['package_price'] ?? 0,
