@@ -24,6 +24,7 @@ try {
 
     $user_id    = $input['user_id']    ?? null;
     $package_id = $input['package_id'] ?? null;
+    $package_price = $input['package_price'] ?? 0;
     $discount   = $input['discount']   ?? 0;
     $start_date = trim($input['start_date'] ?? '');
     $end_date   = trim($input['end_date']   ?? '');
@@ -97,12 +98,12 @@ try {
         respond(false, 'Subscription already active for this month.', [], 409);
     }
     // Insert subscription
-    $stmt = $conn->prepare("INSERT INTO subscriptions (user_id, package_id, discount, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO subscriptions (user_id, package_id, discount, package_price, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
     if (!$stmt) {
         respond(false, 'Prepare failed: ' . $conn->error, [], 500);
     }
 
-    $stmt->bind_param("iidsss", $user_id, $package_id, $discount, $start_date, $end_date, $status);
+    $stmt->bind_param("iidisss", $user_id, $package_id, $discount, $package_price, $start_date, $end_date, $status);
 
     if (!$stmt->execute()) {
         respond(false, 'Database Error: ' . $stmt->error, [], 500);
@@ -124,9 +125,9 @@ try {
             u.name AS name,
             u.email AS email,
             p.name AS package_name,
-            p.price AS package_price,
+            s.package_price AS package_price,
             s.discount,
-            (p.price - s.discount) AS paid_amount,
+            (s.package_price - s.discount) AS paid_amount,
             DATE_FORMAT(s.start_date, '%d-%b-%Y') AS start_date,
             DATE_FORMAT(s.end_date, '%d-%b-%Y') AS end_date,
             DATE_FORMAT(s.start_date, '%M %Y') AS package_month,

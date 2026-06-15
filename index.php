@@ -921,6 +921,7 @@ if (!isset($_SESSION['user'])) {
     <?php include "./include/footerLinks.php" ?>
     <?php include "./include/subscription-modals.php" ?>
     <script src="node_modules/simple-datatables/dist/umd/simple-datatables.js"></script>
+    <script src="assets/js//button-loading.js"></script>
     <script type="module" src="assets/js/subscriptions.js"></script>
     <script src="assets/js/dashboard.js"></script>
 </body>

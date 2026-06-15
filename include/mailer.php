@@ -321,7 +321,8 @@ function send_customer_welcome_email(string $name, string $email, string $passwo
             trim(str_replace(['Rs.', 'rs.', 'RS.'], '', $safeDiscount)) !== '' &&
             floatval(str_replace(['Rs.', ',', ' '], '', $safeDiscount)) > 0
         ) {
-            $discountLine = "<p style='margin: 0 0 8px;'><strong>Discount:</strong> {$safeDiscount}</p>";
+            $discountLine = "<p style='margin: 0 0 8px;'><strong>Discount:</strong> {$safeDiscount}</p>
+           <p style='margin: 0 0 8px'><strong>Paid Amount:</strong> {$safePaidAmount}</p> ";
         }
         $packageHtml = <<<HTML
         <div style="background: #eff6ff; border-radius: 8px; padding: 16px; margin: 20px 0;">
@@ -329,19 +330,18 @@ function send_customer_welcome_email(string $name, string $email, string $passwo
             <p style="margin: 0 0 8px;"><strong>Package Name:</strong> {$safePackageName}</p>
             <p style="margin: 0 0 8px;"><strong>Package Price:</strong> {$safePackagePrice}</p>
             {$discountLine}
-            <p style="margin: 0 0 8px;"><strong>Paid Amount:</strong> {$safePaidAmount}</p>
             {$subscriptionPeriodHtml}
         </div>
 HTML;
 
         $discount = trim($package['discount']); // Faltu spaces khatam krne k liye
-
+        $paidAmount = trim($package['paid_amount']); // Faltu spaces khatam krne k liye
         $packageText = "Package Details:\n"
             . "Package Name: {$package['package_name']}\n"
             . "Package Price: {$package['package_price']}\n"
             // Agar discount khali ho, 0 ho, ya Rs.0 ho to show na ho
             . ($discount !== '0' && $discount !== 'Rs.0' && !empty($discount) ? "Discount: {$package['discount']}\n" : "")
-            . "Paid Amount: {$package['paid_amount']}\n"
+            . ($paidAmount !== '0' && $paidAmount !== 'Rs.0' && !empty($paidAmount) ? "Paid Amount: {$package['paid_amount']}\n" : "")
             . $subscriptionPeriodText;
     }
 
@@ -541,5 +541,3 @@ HTML;
 
     return $mailer->send($email, $subject, $htmlBody, $textBody);
 }
-
-

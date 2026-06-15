@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const subModalTitle = document.getElementById('sub-modal-title');
     const subUserId = document.getElementById('sub-user-id');
     const subPackageId = document.getElementById('sub-package-id');
+    const subPackagePrice = document.getElementById('package-price');
     const subDiscount = document.getElementById('sub-discount');
     const subPaidAmount = document.getElementById('sub-paid-amount');
     const subStatus = document.getElementById('sub-status');
@@ -624,6 +625,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (subPaidAmount) {
             subPaidAmount.value = paid > 0 ? paid.toFixed(2) : '';
         }
+        subPackagePrice.value = price > 0 ? `${price.toFixed(2)}` : '';
     }
 
     function openCustomerSubscriptionModal(customer, packageId = null, rowElement = null) {
@@ -1096,27 +1098,48 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        sendCustomerRequest(`${customerApiBase}/update.php`, data)
-            .then(function (result) {
-                if (result?.status) {
-                    Swal.mixin({
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true,
-                        didOpen: (toast) => {
-                            toast.onmouseenter = Swal.stopTimer;
-                            toast.onmouseleave = Swal.resumeTimer;
-                        }
-                    }).fire({
-                        icon: "success",
-                        title: "Customer updated successfully"
-                    });
-                    activeRow = replaceCustomerRow(activeRow, result.data || data);
-                    closeUserModal();
-                    setModalState('create');
-                } else {
+        // FIX HERE: Added button loading wrapper
+        return runWithButtonLoading(saveUserBtn, 'Updating...', function () {
+            // FIX HERE: Added 'return' to pass promise to the wrapper
+            return sendCustomerRequest(`${customerApiBase}/update.php`, data)
+                .then(function (result) {
+                    if (result?.status) {
+                        Swal.mixin({
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            didOpen: (toast) => {
+                                toast.onmouseenter = Swal.stopTimer;
+                                toast.onmouseleave = Swal.resumeTimer;
+                            }
+                        }).fire({
+                            icon: "success",
+                            title: "Customer updated successfully"
+                        });
+                        activeRow = replaceCustomerRow(activeRow, result.data || data);
+                        closeUserModal();
+                        setModalState('create');
+                    } else {
+                        Swal.mixin({
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            didOpen: (toast) => {
+                                toast.onmouseenter = Swal.stopTimer;
+                                toast.onmouseleave = Swal.resumeTimer;
+                            }
+                        }).fire({
+                            icon: "error",
+                            title: result?.message || 'Something went wrong'
+                        });
+                    }
+                })
+                .catch(function (error) {
+                    console.error('Update customer error:', error);
                     Swal.mixin({
                         toast: true,
                         position: "top-end",
@@ -1129,27 +1152,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }).fire({
                         icon: "error",
-                        title: result?.message || 'Something went wrong'
+                        title: "Server error occurred"
                     });
-                }
-            })
-            .catch(function (error) {
-                console.error('Update customer error:', error);
-                Swal.mixin({
-                    toast: true,
-                    position: "top-end",
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    didOpen: (toast) => {
-                        toast.onmouseenter = Swal.stopTimer;
-                        toast.onmouseleave = Swal.resumeTimer;
-                    }
-                }).fire({
-                    icon: "error",
-                    title: "Server error occurred"
                 });
-            });
+        });
     }
 
     function handleCreateSubscription() {
@@ -1157,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const userId = subUserId?.value || '';
         const packageId = subPackageId?.value || '';
+        const packagePrice = parseFloat(subPackagePrice?.value);
         const discount = parseFloat(subDiscount?.value || '0') || 0;
         const startDate = subscriptionStartPicker?.getValue() || '';
         const endDate = subscriptionEndPicker?.getValue() || '';
@@ -1197,42 +1204,59 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const shouldSendWelcomeEmail = Boolean(pendingWelcomeEmail && pendingWelcomeEmail.password);
 
-        sendSubscriptionRequest(`${subscriptionApiBase}/create.php`, {
-            user_id: userId,
-            package_id: packageId,
-            discount,
-            start_date: startDate,
-            end_date: endDate,
-            status,
-            send_welcome_email: shouldSendWelcomeEmail,
-            welcome_password: shouldSendWelcomeEmail ? pendingWelcomeEmail.password : '',
-        }).then(function (result) {
-            if (result?.status) {
-                const emailSent = result.data?.email_sent === true;
-                welcomeEmailSent = emailSent || !shouldSendWelcomeEmail;
+        // FIX HERE: Wrapped inside runWithButtonLoading using subSaveBtn
+        return runWithButtonLoading(subSaveBtn, 'Saving...', function () {
+            // FIX HERE: Added 'return' to pass promise to the wrapper
+            return sendSubscriptionRequest(`${subscriptionApiBase}/create.php`, {
+                user_id: userId,
+                package_id: packageId,
+                package_price: packagePrice,
+                discount,
+                start_date: startDate,
+                end_date: endDate,
+                status,
+                send_welcome_email: shouldSendWelcomeEmail,
+                welcome_password: shouldSendWelcomeEmail ? pendingWelcomeEmail.password : '',
+            }).then(function (result) {
+                if (result?.status) {
+                    const emailSent = result.data?.email_sent === true;
+                    welcomeEmailSent = emailSent || !shouldSendWelcomeEmail;
 
-                Swal.mixin({
-                    toast: true,
-                    position: "top-end",
-                    showConfirmButton: false,
-                    timer: 3500,
-                    timerProgressBar: true
-                }).fire({
-                    icon: shouldSendWelcomeEmail ? (emailSent ? "success" : "warning") : "success",
-                    title: result.message || (emailSent
-                        ? 'Subscription created and welcome email sent'
-                        : shouldSendWelcomeEmail
-                            ? 'Subscription created, welcome email failed'
-                            : 'Subscription created successfully')
-                });
+                    Swal.mixin({
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3500,
+                        timerProgressBar: true
+                    }).fire({
+                        icon: shouldSendWelcomeEmail ? (emailSent ? "success" : "warning") : "success",
+                        title: result.message || (emailSent
+                            ? 'Subscription created and welcome email sent'
+                            : shouldSendWelcomeEmail
+                                ? 'Subscription created, welcome email failed'
+                                : 'Subscribed successfully')
+                    });
 
-                syncCustomerRowAfterSubscription(result.data || {});
-                clearPendingWelcomeEmail();
-                subscriptionModal.classList.add('hidden');
-                lockBody(false);
-                pendingSubscriptionCustomer = null;
-                pendingSubscriptionRow = null;
-            } else {
+                    syncCustomerRowAfterSubscription(result.data || {});
+                    clearPendingWelcomeEmail();
+                    subscriptionModal.classList.add('hidden');
+                    lockBody(false);
+                    pendingSubscriptionCustomer = null;
+                    pendingSubscriptionRow = null;
+                } else {
+                    Swal.mixin({
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).fire({
+                        icon: "error",
+                        title: result?.message || 'Something went wrong'
+                    });
+                }
+            }).catch(function (error) {
+                console.error('Create subscription error:', error);
                 Swal.mixin({
                     toast: true,
                     position: "top-end",
@@ -1241,20 +1265,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     timerProgressBar: true
                 }).fire({
                     icon: "error",
-                    title: result?.message || 'Something went wrong'
+                    title: "Server error occurred"
                 });
-            }
-        }).catch(function (error) {
-            console.error('Create subscription error:', error);
-            Swal.mixin({
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            }).fire({
-                icon: "error",
-                title: "Server error occurred"
             });
         });
     }

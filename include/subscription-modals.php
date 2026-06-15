@@ -68,7 +68,11 @@ if (isset($allPackages['error'])) {
             </div>
 
             <!-- Discount & Paid Amount -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Package Price (Rs.)</label>
+                    <input type="text" id="package-price" placeholder="e.g. 0" min="0" class="modal-input">
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discount (Rs.)</label>
                     <input type="number" id="sub-discount" placeholder="e.g. 0" min="0" class="modal-input">

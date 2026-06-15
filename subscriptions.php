@@ -67,9 +67,9 @@ if($_SESSION['user']['role'] === 'customer') {
                                     s.package_id,
                                     u.name AS name,
                                     p.name AS package_name,
-                                    p.price AS package_price,
+                                    s.package_price AS package_price,
                                     s.discount,
-                                    (p.price - s.discount) AS paid_amount,
+                                    (s.package_price - s.discount) AS paid_amount,
                                     DATE_FORMAT(s.start_date, '%d-%b-%Y') AS start_date,
                                     DATE_FORMAT(s.end_date, '%d-%b-%Y') AS end_date,
                                     DATE_FORMAT(s.start_date, '%Y-%m-%d') AS start_raw,
@@ -115,12 +115,11 @@ if($_SESSION['user']['role'] === 'customer') {
                                     <th>ID</th>
                                     <th class="hidden md:table-cell">Customer</th>
                                     <th class="hidden md:table-cell">Package</th>
-                                    <th class="hidden">Price</th>
+                                    <th class="hidden">Package Price</th>
                                     <th class="hidden">Discount</th>
-                                    <th class="hidden md:table-cell">Paid Amount</th>
+                                    <th class="hidden">Paid Amount</th>
                                     <th class="hidden md:table-cell">Start Date</th>
                                     <th class="hidden md:table-cell">End Date</th>
-                                    <th class="hidden">Month</th>
                                     <th class="hidden md:table-cell">Status</th>
                                     <th class="hidden md:table-cell" data-sortable="false">Actions</th>
                                 </tr>
@@ -165,10 +164,9 @@ if($_SESSION['user']['role'] === 'customer') {
                                         <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['package_name']) ?></td>
                                         <td class="hidden">Rs.<?= htmlspecialchars($row['package_price']) ?></td>
                                         <td class="hidden">Rs.<?= htmlspecialchars($row['discount']) ?></td>
-                                        <td class="hidden md:table-cell font-semibold text-blue-600 dark:text-blue-400">Rs.<?= htmlspecialchars($row['paid_amount']) ?></td>
+                                        <td class="hidden font-semibold text-blue-600 dark:text-blue-400">Rs.<?= htmlspecialchars($row['paid_amount']) ?></td>
                                         <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['start_date']) ?></td>
                                         <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['end_date']) ?></td>
-                                        <td class="hidden"><?= htmlspecialchars($row['package_month']) ?></td>
                                         <td class="hidden md:table-cell"><?= subStatusBadge($row['status']) ?></td>
                                         <td class="hidden md:table-cell whitespace-nowrap">
                                             <div class="flex items-center gap-2 justify-center">

@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalTitle = document.getElementById('sub-modal-title');
     const userIdSelect = document.getElementById('sub-user-id');
     const packageIdSelect = document.getElementById('sub-package-id');
+    const packagePriceInput = document.getElementById('package-price');
     const discountInput = document.getElementById('sub-discount');
     const paidAmountInput = document.getElementById('sub-paid-amount');
     const statusSelect = document.getElementById('sub-status');
@@ -145,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const discount = parseFloat(discountInput.value) || 0;
         const paid = Math.max(0, price - discount);
         paidAmountInput.value = paid > 0 ? paid.toFixed(2) : '';
+        packagePriceInput.value = price > 0 ? price.toFixed(2) : '';
     }
 
     function parseISODate(value) {
@@ -301,10 +303,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td class="hidden md:table-cell text-gray-700 dark:text-gray-300">${packageName}</td>
                 <td class="hidden">Rs.${packagePrice}</td>
                 <td class="hidden">Rs.${discount}</td>
-                <td class="hidden md:table-cell font-semibold text-blue-600 dark:text-blue-400">Rs.${paidAmount}</td>
+                <td class="hidden font-semibold text-blue-600 dark:text-blue-400">Rs.${paidAmount}</td>
                 <td class="hidden md:table-cell text-gray-700 dark:text-gray-300">${startDate}</td>
                 <td class="hidden md:table-cell text-gray-700 dark:text-gray-300">${endDate}</td>
-                <td class="hidden">${month}</td>
                 <td class="hidden md:table-cell">
                     <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium ${badgeClasses}">${statusText}</span>
                 </td>
@@ -505,6 +506,7 @@ document.addEventListener('DOMContentLoaded', function () {
             id: activeRow ? extractNumericId(activeRow.getAttribute('data-id')) : null,
             user_id: userIdSelect.value || null,
             package_id: packageIdSelect.value || null,
+            package_price: parseFloat(packagePriceInput?.value),
             discount: parseFloat(discountInput.value) || 0,
             start_date: startDatePicker.getValue() || '',
             end_date: endDatePicker.getValue() || '',
@@ -545,75 +547,77 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ─── Save (create / update) ───────────────────────────────────────────────
-    saveBtn?.addEventListener('click', function (e) {
-        e.preventDefault();
-        const data = getFormData();
-        if (!validateForm(data)) return;
+// ─── Save (create / update) ───────────────────────────────────────────────
+saveBtn?.addEventListener('click', function (e) {
+    e.preventDefault();
+    const data = getFormData();
+    if (!validateForm(data)) return;
 
-        return runWithButtonLoading(saveBtn, 'Saving Subscription...', function () {
-            if (renewalMode) {
-                const payload = {
-                    ...data,
-                    base_subscription_id: renewalContext?.subscriptionId || null,
-                };
+    return runWithButtonLoading(saveBtn, 'Saving Subscription...', function () {
+        if (renewalMode) {
+            const payload = {
+                ...data,
+                base_subscription_id: renewalContext?.subscriptionId || null,
+            };
 
-                sendRequest(`${subApiBase}/activate.php`, payload)
-                    .then(function (result) {
-                        if (result.status) {
-                            toast('success', 'Subscription activated successfully');
-                            if (dashboardAlertRow && typeof window.removeSubscriptionAlertRow === 'function') {
-                                window.removeSubscriptionAlertRow(dashboardAlertRow);
-                                dashboardAlertRow = null;
-                            } else if (typeof window.refreshSubscriptionAlertsTable === 'function') {
-                                window.refreshSubscriptionAlertsTable();
-                            }
-                            closeModal();
-                        } else {
-                            toast('error', result.message || 'Something went wrong');
+            // FIX HERE: Added 'return' to pass the promise back
+            return sendRequest(`${subApiBase}/activate.php`, payload)
+                .then(function (result) {
+                    if (result.status) {
+                        toast('success', 'Subscription activated successfully');
+                        if (dashboardAlertRow && typeof window.removeSubscriptionAlertRow === 'function') {
+                            window.removeSubscriptionAlertRow(dashboardAlertRow);
+                            dashboardAlertRow = null;
+                        } else if (typeof window.refreshSubscriptionAlertsTable === 'function') {
+                            window.refreshSubscriptionAlertsTable();
                         }
-                    })
-                    .catch(function () { toast('error', 'Server error occurred'); });
-                return;
-            }
+                        closeModal();
+                    } else {
+                        toast('error', result.message || 'Something went wrong');
+                    }
+                })
+                .catch(function () { toast('error', 'Server error occurred'); });
+        }
 
-            if (modalMode === 'create') {
-                sendRequest(`${subApiBase}/create.php`, data)
-                    .then(function (result) {
-                        if (result.status) {
-                            toast('success', 'Subscription created successfully');
-                            addRowToTable(result.data || data);
-                            if (dashboardAlertRow && typeof window.removeSubscriptionAlertRow === 'function') {
-                                window.removeSubscriptionAlertRow(dashboardAlertRow);
-                                dashboardAlertRow = null;
-                            } else if (typeof window.refreshSubscriptionAlertsTable === 'function') {
-                                window.refreshSubscriptionAlertsTable();
-                            }
-                            closeModal();
-                            setModalState('create');
-                        } else {
-                            toast('error', result.message || 'Something went wrong');
+        if (modalMode === 'create') {
+            // FIX HERE: Added 'return' to pass the promise back
+            return sendRequest(`${subApiBase}/create.php`, data)
+                .then(function (result) {
+                    if (result.status) {
+                        toast('success', 'Subscription created successfully');
+                        addRowToTable(result.data || data);
+                        if (dashboardAlertRow && typeof window.removeSubscriptionAlertRow === 'function') {
+                            window.removeSubscriptionAlertRow(dashboardAlertRow);
+                            dashboardAlertRow = null;
+                        } else if (typeof window.refreshSubscriptionAlertsTable === 'function') {
+                            window.refreshSubscriptionAlertsTable();
                         }
-                    })
-                    .catch(function () { toast('error', 'Server error occurred'); });
-                return;
-            }
+                        closeModal();
+                        setModalState('create');
+                    } else {
+                        toast('error', result.message || 'Something went wrong');
+                    }
+                })
+                .catch(function () { toast('error', 'Server error occurred'); });
+        }
 
-            if (modalMode === 'edit' && activeRow) {
-                sendRequest(`${subApiBase}/update.php`, data)
-                    .then(function (result) {
-                        if (result.status) {
-                            toast('success', 'Subscription updated successfully');
-                            activeRow = updateRowInTable(activeRow, result.data || data);
-                            closeModal();
-                            setModalState('create');
-                        } else {
-                            toast('error', result.message || 'Something went wrong');
-                        }
-                    })
-                    .catch(function () { toast('error', 'Server error occurred'); });
-            }
-        });
+        if (modalMode === 'edit' && activeRow) {
+            // FIX HERE: Added 'return' to pass the promise back
+            return sendRequest(`${subApiBase}/update.php`, data)
+                .then(function (result) {
+                    if (result.status) {
+                        toast('success', 'Subscription updated successfully');
+                        activeRow = updateRowInTable(activeRow, result.data || data);
+                        closeModal();
+                        setModalState('create');
+                    } else {
+                        toast('error', result.message || 'Something went wrong');
+                    }
+                })
+                .catch(function () { toast('error', 'Server error occurred'); });
+        }
     });
+});
 
     // ─── Delete confirmation ──────────────────────────────────────────────────
     confirmDeleteBtn?.addEventListener('click', function (e) {
