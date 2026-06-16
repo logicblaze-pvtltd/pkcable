@@ -170,12 +170,12 @@ if($_SESSION['user']['role'] === 'customer') {
                                         <td class="hidden md:table-cell"><?= subStatusBadge($row['status']) ?></td>
                                         <td class="hidden md:table-cell whitespace-nowrap">
                                             <div class="flex items-center gap-2 justify-center">
-                                                <button class="view-subscription-btn p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded transition-colors" title="View">
+                                                <button class="view-subscription-btn p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded transition-colors" title="View History">
                                                     <i data-lucide="eye" class="w-4 h-4"></i>
                                                 </button>
-                                                <button class="edit-subscription-btn p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded transition-colors" title="Edit">
+                                                <!-- <button class="edit-subscription-btn p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded transition-colors" title="Edit">
                                                     <i data-lucide="edit" class="w-4 h-4"></i>
-                                                </button>
+                                                </button> -->
                                             </div>
                                         </td>
                                     </tr>

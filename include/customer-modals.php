@@ -26,7 +26,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                 <input type="password" id="user-password" placeholder="Enter password" class="modal-input" autocomplete="new-password">
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional. Leave blank if you do not want to set or change a password.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Note. Leave this field blank if you want the system to generate a password for you.</p>
             </div>
 
             <div>
