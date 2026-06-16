@@ -11,19 +11,17 @@
 
              <!-- Notification Bell -->
              <div class="relative">
-                 <button id="notification-btn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative">
+                 <button id="notification-btn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative hidden">
                      <i data-lucide="bell" class="w-6 h-6 text-gray-600 dark:text-gray-300"></i>
                      <span class="absolute right-0 top-0 rounded-full bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center">3</span>
                  </button>
 
-                 <!-- Notification Dropdown -->
                  <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50 transform opacity-0 transition-all duration-200 scale-95 origin-top-right">
                      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</h3>
                          <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">3 new</span>
                      </div>
                      <div class="max-h-96 overflow-y-auto custom-scrollbar">
-                         <!-- Item -->
                          <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors bg-blue-50 dark:bg-blue-900/20">
                              <div class="flex gap-3">
                                  <div class="mt-0.5 flex-shrink-0 text-blue-500"><i data-lucide="mail" class="w-4 h-4"></i></div>
