@@ -3,6 +3,7 @@ header('Content-Type: application/json');
 
 require_once '../../include/connection.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/../subscription/auto_expired.php';
 
 session_start();
 
@@ -36,6 +37,7 @@ try {
     }
 
     if (empty($user)) {
+        auto_expired(); // Ensure expired subscriptions are updated before login
         customer_respond(false, 'Invalid credentials', [], 401);
     }
 
@@ -49,7 +51,7 @@ try {
 
     // Check status
     if ($user['status'] !== 'active') {
-        customer_respond(false, 'Account is inactive', [], 403);
+        customer_respond(false, 'Account is inactive please contact pakistan Cable Team', [], 403);
     }
 
     // Verify password
