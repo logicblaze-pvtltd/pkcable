@@ -541,3 +541,87 @@ HTML;
 
     return $mailer->send($email, $subject, $htmlBody, $textBody);
 }
+
+function send_password_reset_otp_email(string $name, string $email, string $otp): array
+{
+    $appName  = get_env_value('APP_NAME', 'Pakistan Cable');
+    $baseUrl  = app_base_url();
+
+    $safeName    = htmlspecialchars($name,    ENT_QUOTES, 'UTF-8');
+    $safeEmail   = htmlspecialchars($email,   ENT_QUOTES, 'UTF-8');
+    $safeAppName = htmlspecialchars($appName, ENT_QUOTES, 'UTF-8');
+    $safeOtp     = htmlspecialchars($otp,     ENT_QUOTES, 'UTF-8');
+
+    // Format OTP digits with spacing for readability in email
+    $otpFormatted = implode(' ', str_split($safeOtp));
+
+    $subject = 'Your ' . $appName . ' Password Reset Code';
+
+    $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{$safeAppName} – Password Reset</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; background: #f9fafb; margin: 0; padding: 24px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #7C3AED, #6366F1); padding: 32px 28px; text-align: center;">
+            <div style="display: inline-block; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 18px; margin-bottom: 14px;">
+                <span style="font-size: 22px; font-weight: 800; color: white; letter-spacing: 1px;">{$safeAppName}</span>
+            </div>
+            <h1 style="margin: 0; font-size: 22px; color: white; font-weight: 700;">Password Reset Request</h1>
+            <p style="margin: 8px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">We received a request to reset your account password</p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 32px 28px;">
+            <p style="margin: 0 0 8px;">Assalam O Alaikum <strong>{$safeName}</strong>,</p>
+            <p style="margin: 0 0 24px; color: #4B5563; font-size: 15px;">
+                Use the one-time code below to reset your password. This code is valid for <strong>10 minutes</strong> and can only be used once.
+            </p>
+
+            <!-- OTP Box -->
+            <div style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); border: 2px solid #c4b5fd; border-radius: 14px; padding: 28px; text-align: center; margin: 0 0 28px;">
+                <p style="margin: 0 0 10px; font-size: 13px; color: #7C3AED; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">Your One-Time Code</p>
+                <p style="margin: 0; font-size: 42px; font-weight: 800; letter-spacing: 16px; color: #4C1D95; font-family: 'Courier New', monospace;">{$otpFormatted}</p>
+                <p style="margin: 12px 0 0; font-size: 12px; color: #8B5CF6;">⏱ Expires in 10 minutes</p>
+            </div>
+
+            <!-- Security Notice -->
+            <div style="background: #fff7ed; border-left: 4px solid #F59E0B; border-radius: 6px; padding: 14px 18px; margin: 0 0 24px;">
+                <p style="margin: 0; font-size: 13px; color: #92400E;">
+                    <strong>🔒 Security Notice:</strong> If you did not request a password reset, please ignore this email. Your password will remain unchanged. Never share this code with anyone.
+                </p>
+            </div>
+
+            <p style="margin: 0; color: #6B7280; font-size: 14px;">
+                If you need help, please contact our support team.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #F9FAFB; border-top: 1px solid #E5E7EB; padding: 20px 28px; text-align: center;">
+            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">
+                Regards,<br>
+                <strong style="color: #6B7280;">{$safeAppName} Team</strong>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+    $textBody = "Password Reset Code – {$appName}\n\n"
+        . "Assalam O Alaikum {$name},\n\n"
+        . "Your one-time password reset code is:\n\n"
+        . "  {$otp}\n\n"
+        . "This code expires in 10 minutes.\n\n"
+        . "If you did not request a password reset, please ignore this email.\n\n"
+        . "Regards,\n{$appName} Team";
+
+    $mailer = new SmtpMailer();
+    return $mailer->send($email, $subject, $htmlBody, $textBody);
+}
