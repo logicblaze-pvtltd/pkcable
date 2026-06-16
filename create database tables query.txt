@@ -21,6 +21,8 @@ user_role enum ('super admin','admin', 'manager', 'customer'),
 status enum('active','inactive'),
 package int null,
 address text null,
+otp_code null,
+otp_expires_at null,
 created_at datetime default current_timestamp,
 primary key (id),
 foreign key (package) references packages (id)
@@ -41,9 +43,11 @@ status ENUM(
     'expired',
     'cancelled'
 ),
+active_by int null,
 discount varchar(255),
 created_at datetime default current_timestamp,
 primary key (id),
 foreign key (user_id) references users(id),
+foreign key (active_by) references users(id),
 foreign key (package_id) references packages(id)
 )Engine = InnoDB;

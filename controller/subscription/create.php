@@ -1,8 +1,9 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 include '../../include/connection.php';
 require_once '../../include/mailer.php';
-
+$session_user_id = $_SESSION['user']['id'];
 function respond($status, $message, $data = [], $httpCode = 200)
 {
     http_response_code($httpCode);
@@ -98,12 +99,12 @@ try {
         respond(false, 'Subscription already active for this month.', [], 409);
     }
     // Insert subscription
-    $stmt = $conn->prepare("INSERT INTO subscriptions (user_id, package_id, discount, package_price, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO subscriptions (user_id, package_id, discount, package_price, start_date, end_date, status, active_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     if (!$stmt) {
         respond(false, 'Prepare failed: ' . $conn->error, [], 500);
     }
 
-    $stmt->bind_param("iidisss", $user_id, $package_id, $discount, $package_price, $start_date, $end_date, $status);
+    $stmt->bind_param("iidisssi", $user_id, $package_id, $discount, $package_price, $start_date, $end_date, $status, $session_user_id);
 
     if (!$stmt->execute()) {
         respond(false, 'Database Error: ' . $stmt->error, [], 500);

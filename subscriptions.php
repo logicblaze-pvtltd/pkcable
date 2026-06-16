@@ -5,7 +5,7 @@ if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();
 }
-if($_SESSION['user']['role'] === 'customer') {
+if ($_SESSION['user']['role'] === 'customer') {
     header("Location: access_denied.php");
     exit();
 }
@@ -61,13 +61,15 @@ if($_SESSION['user']['role'] === 'customer') {
 
                     <?php
                     $sql =
-                    "SELECT
+                        "SELECT
                                     s.id,
                                     s.user_id,
                                     s.package_id,
                                     u.name AS name,
+                                    u.address AS address,
                                     p.name AS package_name,
                                     s.package_price AS package_price,
+                                    au.name AS active_by,
                                     s.discount,
                                     (s.package_price - s.discount) AS paid_amount,
                                     DATE_FORMAT(s.start_date, '%d-%b-%Y') AS start_date,
@@ -78,10 +80,15 @@ if($_SESSION['user']['role'] === 'customer') {
                                     s.status
                                 FROM subscriptions s
                                 JOIN users u ON s.user_id = u.id
-                                JOIN packages p ON s.package_id = p.id";
-                                $params = [];
-                    if(!empty($_GET['month'])) {
-                        $sql .= " WHERE DATE_FORMAT(s.created_at, '%Y-%m') = ?";
+                                JOIN packages p ON s.package_id = p.id
+                                LEFT JOIN users au ON s.active_by = au.id";
+                    $params = [];
+                    if ($_SESSION['user']['role'] === 'manager') {
+                        $sql .= " WHERE s.active_by = ? ";
+                        $params[] = $_SESSION['user']['id'];
+                    }
+                    if (!empty($_GET['month'])) {
+                        $sql .= "AND DATE_FORMAT(s.created_at, '%Y-%m') = ? ";
                         $params[] = $_GET['month'];
                     }
                     $sql .= " ORDER BY s.id DESC";
@@ -95,9 +102,10 @@ if($_SESSION['user']['role'] === 'customer') {
                     }
 
                     // Status badge helper
-                    function subStatusBadge($status) {
+                    function subStatusBadge($status)
+                    {
                         $s = strtolower($status ?? '');
-                        $classes = match($s) {
+                        $classes = match ($s) {
                             'active'    => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
                             'expired'   => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                             'cancelled' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
@@ -118,6 +126,7 @@ if($_SESSION['user']['role'] === 'customer') {
                                     <th class="hidden">Package Price</th>
                                     <th class="hidden">Discount</th>
                                     <th class="hidden">Paid Amount</th>
+                                    <th class="hidden md:table-cell">Active By</th>
                                     <th class="hidden md:table-cell">Start Date</th>
                                     <th class="hidden md:table-cell">End Date</th>
                                     <th class="hidden md:table-cell">Status</th>
@@ -143,8 +152,7 @@ if($_SESSION['user']['role'] === 'customer') {
                                         data-user-id="<?= htmlspecialchars($row['user_id']) ?>"
                                         data-package-id="<?= htmlspecialchars($row['package_id']) ?>"
                                         data-start-raw="<?= htmlspecialchars($row['start_raw']) ?>"
-                                        data-end-raw="<?= htmlspecialchars($row['end_raw']) ?>"
-                                    >
+                                        data-end-raw="<?= htmlspecialchars($row['end_raw']) ?>">
                                         <td class="align-top">
                                             <div class="flex items-center gap-3">
                                                 <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0">
@@ -153,18 +161,22 @@ if($_SESSION['user']['role'] === 'customer') {
                                                 <span data-role="desktop-id" class="hidden md:block font-medium text-gray-900 dark:text-gray-100"><?= htmlspecialchars($formattedId) ?></span>
                                                 <div class="min-w-0 flex-1 md:hidden">
                                                     <p data-role="mobile-name" class="truncate font-medium text-gray-900 dark:text-gray-100"><?= htmlspecialchars(strtoupper($row['name'])) ?></p>
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400">ID: <span data-role="mobile-id"><?= htmlspecialchars($formattedId) ?></span></p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400"><span data-role="mobile-address"><?= htmlspecialchars($row['address'] ?? '') ?></span></p>
                                                 </div>
                                                 <button type="button" class="mobile-row-toggle inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500 dark:text-gray-400" aria-expanded="false" aria-label="Toggle details">
                                                     <i data-lucide="chevron-down" class="mobile-row-chevron w-4 h-4 transition-transform duration-200"></i>
                                                 </button>
                                             </div>
                                         </td>
-                                        <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars(strtoupper($row['name'])) ?></td>
+                                        <td class="hidden md:table-cell text-gray-700 dark:text-gray-300">
+                                            <?= htmlspecialchars(strtoupper($row['name'])) ?>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400"><?= htmlspecialchars($row['address'] ?? '') ?></p>
+                                        </td>
                                         <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['package_name']) ?></td>
                                         <td class="hidden">Rs.<?= htmlspecialchars($row['package_price']) ?></td>
                                         <td class="hidden">Rs.<?= htmlspecialchars($row['discount']) ?></td>
                                         <td class="hidden font-semibold text-blue-600 dark:text-blue-400">Rs.<?= htmlspecialchars($row['paid_amount']) ?></td>
+                                        <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['active_by'] ?? 'N/A') ?></td>
                                         <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['start_date']) ?></td>
                                         <td class="hidden md:table-cell text-gray-700 dark:text-gray-300"><?= htmlspecialchars($row['end_date']) ?></td>
                                         <td class="hidden md:table-cell"><?= subStatusBadge($row['status']) ?></td>

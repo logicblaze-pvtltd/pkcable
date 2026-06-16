@@ -43,102 +43,107 @@ if (!isset($_SESSION['user'])) {
                 <?php include "./include/breadcrumbs.php";
                 if ($_SESSION['user']['role'] !== 'customer') {
                 ?>
-
                     <!-- Dashboard Cards -->
-                    <div class="mb-4 grid lg:grid-cols-4 gap-4 animate-fade-in-up">
+                    <div class="mb-4 grid grid-cols-1 lg:grid-cols-<?= ($_SESSION['user']['role'] === 'admin') ? 4 : 3 ?> gap-4 animate-fade-in-up">
                         <?php
-                        $current = $conn->query("
+                        if ($_SESSION['user']['role'] === 'admin') {
+                            $current = $conn->query("
                             SELECT COUNT(*) AS total
                             FROM users
                             WHERE status = 'active'
                             AND user_role = 'customer'
                             ")->fetch_assoc()['total'];
 
-                        $lastMonth = $conn->query("
+                            $lastMonth = $conn->query("
                             SELECT COUNT(*) AS total
                             FROM users
                             WHERE status = 'active'
                             AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')
                             ")->fetch_assoc()['total'];
 
-                        $percentage = 0;
+                            $percentage = 0;
 
-                        if ($lastMonth > 0) {
-                            $percentage = round((($current - $lastMonth) / $lastMonth) * 100);
-                        }
+                            if ($lastMonth > 0) {
+                                $percentage = round((($current - $lastMonth) / $lastMonth) * 100);
+                            }
                         ?>
-                        <!-- Stat Card 1: Total Users -->
-                        <a href="customers.php?status=active" class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition-all duration-300">
-                            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
-                            <div class="px-4 py-2">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
-                                            </path>
-                                        </svg>
+                            <!-- Stat Card 1: Total Users -->
+                            <a href="customers.php?status=active" class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition-all duration-300">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+                                <div class="px-4 py-2">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                                </path>
+                                            </svg>
+                                        </div>
+
+                                        <span class="text-xs font-medium <?= $percentage >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50' ?> px-2 py-1 rounded-full">
+                                            <?= ($percentage >= 0 ? '+' : '') . $percentage ?>%
+                                        </span>
                                     </div>
 
-                                    <span class="text-xs font-medium <?= $percentage >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50' ?> px-2 py-1 rounded-full">
-                                        <?= ($percentage >= 0 ? '+' : '') . $percentage ?>%
-                                    </span>
+                                    <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">
+                                        Active Customers
+                                    </h3>
+
+                                    <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                        <?= number_format($current) ?>
+                                    </p>
+
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        Compared to <?= number_format($lastMonth) ?> previous customers
+                                    </p>
                                 </div>
-
-                                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">
-                                    Active Customers
-                                </h3>
-
-                                <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                    <?= number_format($current) ?>
-                                </p>
-
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    Compared to <?= number_format($lastMonth) ?> previous customers
-                                </p>
-                            </div>
-                        </a>
-                        <?php
-                        $inactiveUsers = $conn->query("
+                            </a>
+                            <?php
+                            $inactiveUsers = $conn->query("
                             SELECT COUNT(*) AS total
                             FROM users
                             WHERE status = 'inactive'
                             AND user_role = 'customer'
                         ")->fetch_assoc()['total'];
-                        ?>
-                        <a href="customers.php?status=inactive" class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition-all duration-300">
-                            <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+                            ?>
+                            <a href="customers.php?status=inactive" class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition-all duration-300">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
 
-                            <div class="px-4 py-2">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
-                                            </path>
-                                        </svg>
+                                <div class="px-4 py-2">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                                </path>
+                                            </svg>
+                                        </div>
+
+                                        <span class="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded-full">
+                                            Inactive
+                                        </span>
                                     </div>
 
-                                    <span class="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded-full">
-                                        Inactive
-                                    </span>
+                                    <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">
+                                        Inactive Customers
+                                    </h3>
+
+                                    <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                        <?= number_format($inactiveUsers) ?>
+                                    </p>
+
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        Currently inactive customer accounts
+                                    </p>
                                 </div>
-
-                                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">
-                                    Inactive Customers
-                                </h3>
-
-                                <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                    <?= number_format($inactiveUsers) ?>
-                                </p>
-
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    Currently inactive customer accounts
-                                </p>
-                            </div>
-                        </a>
+                            </a>
                         <?php
-                        $earnings = $conn->query("
+                        }
+
+                        $role = $_SESSION['user']['role'];
+                        $userId = $_SESSION['user']['id'];
+
+                        $sql = "
                                 SELECT 
                                     COALESCE(SUM(p.price - IFNULL(s.discount, 0)), 0) AS total_earnings
                                 FROM subscriptions s
@@ -146,7 +151,13 @@ if (!isset($_SESSION['user'])) {
                                 WHERE MONTH(s.created_at) = MONTH(CURDATE())
                                 AND YEAR(s.created_at) = YEAR(CURDATE())
                                 AND s.status != 'cancelled'
-                            ")->fetch_assoc();
+                            ";
+
+                        if ($role === 'manager') {
+                            $sql .= " AND s.active_by = $userId ";
+                        }
+
+                        $earnings = $conn->query($sql)->fetch_assoc();
 
                         $totalEarnings = $earnings['total_earnings'];
                         ?>
@@ -168,7 +179,7 @@ if (!isset($_SESSION['user'])) {
                                 </div>
 
                                 <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">
-                                    Total Earnings
+                                    Total <?= ($role == 'manager') ? 'recovery' : 'Earnings' ?>
                                 </h3>
 
                                 <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -181,7 +192,8 @@ if (!isset($_SESSION['user'])) {
                             </div>
                         </a>
                         <?php
-                        $pending = $conn->query("
+                        if($_SESSION['user']['role'] === 'admin'){
+                            $pending = $conn->query("
                             SELECT COALESCE(SUM(p.price), 0) AS pending_amount
                             FROM users u
                             JOIN packages p ON u.package = p.id
@@ -193,10 +205,22 @@ if (!isset($_SESSION['user'])) {
                                     WHERE s.user_id = u.id
                                     AND MONTH(s.start_date) = MONTH(CURDATE())
                                     AND YEAR(s.start_date) = YEAR(CURDATE())
-                            )
-                        ")->fetch_assoc();
-
-                        $pendingAmount = $pending['pending_amount'];
+                                    )
+                                    ")->fetch_assoc();
+                                    
+                                    $pendingAmount = $pending['pending_amount'];
+                        }else{
+                            $todayEarnings = $conn->query("
+                            SELECT 
+                                    COALESCE(SUM(p.price - IFNULL(s.discount, 0)), 0) AS total_earnings
+                                FROM subscriptions s
+                                JOIN packages p ON s.package_id = p.id
+                                WHERE DATE(s.created_at) = CURDATE()
+                                AND s.status != 'cancelled'
+                                    ")->fetch_assoc();
+                                    
+                                    $todayEarningsAmount = $todayEarnings['total_earnings'];
+                        }
                         ?>
                         <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition-all duration-300">
                             <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
@@ -207,15 +231,15 @@ if (!isset($_SESSION['user'])) {
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                                         </svg>
                                     </div>
-                                    <span class="text-xs font-medium text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 px-2 py-1 rounded-full">Pending Payments</span>
+                                    <span class="text-xs font-medium text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 px-2 py-1 rounded-full"><?= ($role == 'manager') ? "Today's Recovery" : "Pending Payments" ?></span>
                                 </div>
-                                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Pending Ammount</h3>
+                                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1"><?= ($role == 'manager') ? "Today's Total Recovery" : "Pending Payments" ?></h3>
                                 <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                    Rs. <?= number_format($pendingAmount) ?>
+                                    Rs. <?= ($role === 'manager') ? number_format($todayEarningsAmount) : number_format($pendingAmount) ?>
                                 </p>
 
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    Pending for this month
+                                    <?= ($role === 'manager') ? "Today's Recovery" : "Pending for this month" ?>
                                 </p>
                             </div>
                         </div>
