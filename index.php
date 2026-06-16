@@ -419,33 +419,32 @@ if (!isset($_SESSION['user'])) {
                     </div>
                 <?php } else { ?>
                     <!-- Customer Package History Section -->
-                    <!-- Customer Package History Section - Complete Code -->
                     <div class="space-y-6">
                         <?php
                         $customerId = $_SESSION['user']['id'];
 
                         // Get current active package
                         $currentPackage = $conn->query("
-        SELECT 
-            s.id AS subscription_id,
-            p.name AS package_name,
-            CAST(p.price AS DECIMAL(10,2)) AS package_price,
-            CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)) AS discount,
-            CAST((CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2))) AS DECIMAL(10,2)) AS paid_amount,
-            s.start_date,
-            s.end_date,
-            DATEDIFF(s.end_date, CURDATE()) AS days_remaining,
-            s.status,
-            DATE_FORMAT(s.start_date, '%d %b %Y') AS start_date_formatted,
-            DATE_FORMAT(s.end_date, '%d %b %Y') AS end_date_formatted
-        FROM subscriptions s
-        INNER JOIN packages p ON s.package_id = p.id
-        WHERE s.user_id = $customerId 
-            AND s.status = 'active' 
-            AND s.end_date >= CURDATE()
-        ORDER BY s.end_date ASC
-        LIMIT 1
-    ");
+                                                SELECT 
+                                                    s.id AS subscription_id,
+                                                    p.name AS package_name,
+                                                    CAST(p.price AS DECIMAL(10,2)) AS package_price,
+                                                    CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)) AS discount,
+                                                    CAST((CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2))) AS DECIMAL(10,2)) AS paid_amount,
+                                                    s.start_date,
+                                                    s.end_date,
+                                                    DATEDIFF(s.end_date, CURDATE()) AS days_remaining,
+                                                    s.status,
+                                                    DATE_FORMAT(s.start_date, '%d %b %Y') AS start_date_formatted,
+                                                    DATE_FORMAT(s.end_date, '%d %b %Y') AS end_date_formatted
+                                                FROM subscriptions s
+                                                INNER JOIN packages p ON s.package_id = p.id
+                                                WHERE s.user_id = $customerId 
+                                                    AND s.status = 'active' 
+                                                    AND s.end_date >= CURDATE()
+                                                ORDER BY s.end_date ASC
+                                                LIMIT 1
+                                        ");
 
                         // Pagination variables
                         $page = isset($_GET['history_page']) ? max(1, (int)$_GET['history_page']) : 1;
@@ -454,75 +453,75 @@ if (!isset($_SESSION['user'])) {
 
                         // Get total records count
                         $totalQuery = $conn->query("
-        SELECT COUNT(*) as total
-        FROM subscriptions s
-        INNER JOIN packages p ON s.package_id = p.id
-        WHERE s.user_id = $customerId
-    ");
+                                SELECT COUNT(*) as total
+                                FROM subscriptions s
+                                INNER JOIN packages p ON s.package_id = p.id
+                                WHERE s.user_id = $customerId
+                            ");
                         $total_records = $totalQuery->fetch_assoc()['total'];
                         $total_pages = ceil($total_records / $records_per_page);
 
                         // Get paginated package history
                         $packageHistory = $conn->query("
-        SELECT 
-            s.id AS subscription_id,
-            p.name AS package_name,
-            CAST(p.price AS DECIMAL(10,2)) AS package_price,
-            CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)) AS discount,
-            CAST((CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2))) AS DECIMAL(10,2)) AS paid_amount,
-            s.start_date,
-            s.end_date,
-            s.status AS subscription_status,
-            s.created_at,
-            DATE_FORMAT(s.start_date, '%d %b %Y') AS start_date_formatted,
-            DATE_FORMAT(s.end_date, '%d %b %Y') AS end_date_formatted,
-            CASE 
-                WHEN s.status = 'cancelled' THEN 'cancelled'
-                WHEN s.end_date >= CURDATE() AND s.status = 'active' THEN 'active'
-                WHEN s.end_date < CURDATE() THEN 'expired'
-                ELSE s.status
-            END AS current_status,
-            DATEDIFF(s.end_date, CURDATE()) AS days_remaining
-        FROM subscriptions s
-        INNER JOIN packages p ON s.package_id = p.id
-        WHERE s.user_id = $customerId
-        ORDER BY 
-            CASE 
-                WHEN s.status = 'active' AND s.end_date >= CURDATE() THEN 0 
-                ELSE 1 
-            END,
-            s.start_date DESC
-        LIMIT $offset, $records_per_page
-    ");
+                                    SELECT 
+                                        s.id AS subscription_id,
+                                        p.name AS package_name,
+                                        CAST(p.price AS DECIMAL(10,2)) AS package_price,
+                                        CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)) AS discount,
+                                        CAST((CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2))) AS DECIMAL(10,2)) AS paid_amount,
+                                        s.start_date,
+                                        s.end_date,
+                                        s.status AS subscription_status,
+                                        s.created_at,
+                                        DATE_FORMAT(s.start_date, '%d %b %Y') AS start_date_formatted,
+                                        DATE_FORMAT(s.end_date, '%d %b %Y') AS end_date_formatted,
+                                        CASE 
+                                            WHEN s.status = 'cancelled' THEN 'cancelled'
+                                            WHEN s.end_date >= CURDATE() AND s.status = 'active' THEN 'active'
+                                            WHEN s.end_date < CURDATE() THEN 'expired'
+                                            ELSE s.status
+                                        END AS current_status,
+                                        DATEDIFF(s.end_date, CURDATE()) AS days_remaining
+                                    FROM subscriptions s
+                                    INNER JOIN packages p ON s.package_id = p.id
+                                    WHERE s.user_id = $customerId
+                                    ORDER BY 
+                                        CASE 
+                                            WHEN s.status = 'active' AND s.end_date >= CURDATE() THEN 0 
+                                            ELSE 1 
+                                        END,
+                                        s.start_date DESC
+                                    LIMIT $offset, $records_per_page
+                                ");
 
                         // Get summary statistics
                         $stats = $conn->query("
-        SELECT 
-            COUNT(*) AS total_subscriptions,
-            SUM(CASE 
-                WHEN s.status = 'active' AND s.end_date >= CURDATE() THEN 1 
-                ELSE 0 
-            END) AS active_subscriptions,
-            SUM(CASE 
-                WHEN s.end_date < CURDATE() OR s.status = 'expired' THEN 1 
-                ELSE 0 
-            END) AS expired_subscriptions,
-            SUM(CASE 
-                WHEN s.status = 'cancelled' THEN 1 
-                ELSE 0 
-            END) AS cancelled_subscriptions,
-            SUM(CASE 
-                WHEN s.status != 'cancelled' THEN (CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)))
-                ELSE 0 
-            END) AS total_spent,
-            AVG(CASE 
-                WHEN s.status != 'cancelled' THEN (CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)))
-                ELSE NULL 
-            END) AS avg_payment
-        FROM subscriptions s
-        INNER JOIN packages p ON s.package_id = p.id
-        WHERE s.user_id = $customerId
-    ")->fetch_assoc();
+                                    SELECT 
+                                        COUNT(*) AS total_subscriptions,
+                                        SUM(CASE 
+                                            WHEN s.status = 'active' AND s.end_date >= CURDATE() THEN 1 
+                                            ELSE 0 
+                                        END) AS active_subscriptions,
+                                        SUM(CASE 
+                                            WHEN s.end_date < CURDATE() OR s.status = 'expired' THEN 1 
+                                            ELSE 0 
+                                        END) AS expired_subscriptions,
+                                        SUM(CASE 
+                                            WHEN s.status = 'cancelled' THEN 1 
+                                            ELSE 0 
+                                        END) AS cancelled_subscriptions,
+                                        SUM(CASE 
+                                            WHEN s.status != 'cancelled' THEN (CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)))
+                                            ELSE 0 
+                                        END) AS total_spent,
+                                        AVG(CASE 
+                                            WHEN s.status != 'cancelled' THEN (CAST(p.price AS DECIMAL(10,2)) - CAST(COALESCE(s.discount, 0) AS DECIMAL(10,2)))
+                                            ELSE NULL 
+                                        END) AS avg_payment
+                                    FROM subscriptions s
+                                    INNER JOIN packages p ON s.package_id = p.id
+                                    WHERE s.user_id = $customerId
+                                ")->fetch_assoc();
                         ?>
 
                         <!-- Current Active Package Hero Card -->

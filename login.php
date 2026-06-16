@@ -230,7 +230,7 @@ require_once './include/connection.php';
                             id="password-input"
                             class="ani-input w-full px-3 py-3 border rounded-[4px] focus:outline-none focus:ring-1 focus:shadow-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-400 pr-10"
                             type="password"
-                            placeholder="••••••••••"
+                            placeholder="Enter your password"
                             autocomplete="current-password" />
                         <!-- Show/Hide password button -->
                         <button type="button" id="toggle-password" class="absolute right-3 top-[44px] text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none">

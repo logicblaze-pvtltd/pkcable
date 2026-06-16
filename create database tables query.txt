@@ -45,6 +45,5 @@ discount varchar(255),
 created_at datetime default current_timestamp,
 primary key (id),
 foreign key (user_id) references users(id),
-foreign key (package_id) references packages(id),
-foreign key (package_price) references packages(price)
+foreign key (package_id) references packages(id)
 )Engine = InnoDB;
