@@ -1,3 +1,5 @@
+     <link rel="manifest" href="/manifest.json">
+     <meta name="theme-color" content="#000000">
      <!-- ANTI-FOUC: Apply dark mode BEFORE any CSS loads to prevent flash -->
      <script>
           ! function() {
@@ -11,18 +13,18 @@
      <!-- Dynamic APP URL Configuration -->
      <script>
           window.APP_URL = <?php
-               $configured = get_env_value('APP_URL');
-               if ($configured) {
-                    $url = rtrim($configured, '/');
-               } else {
-                    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-                    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-                    $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
-                    $basePath = preg_replace('#/(?:assets|controller|include)(?:/.*)?$#', '', $scriptDir);
-                    $url = rtrim($scheme . '://' . $host . ($basePath === '/' ? '' : $basePath), '/');
-               }
-               echo json_encode($url);
-          ?>;
+                              $configured = get_env_value('APP_URL');
+                              if ($configured) {
+                                   $url = rtrim($configured, '/');
+                              } else {
+                                   $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                                   $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                                   $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+                                   $basePath = preg_replace('#/(?:assets|controller|include)(?:/.*)?$#', '', $scriptDir);
+                                   $url = rtrim($scheme . '://' . $host . ($basePath === '/' ? '' : $basePath), '/');
+                              }
+                              echo json_encode($url);
+                              ?>;
      </script>
 
 
