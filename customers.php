@@ -5,7 +5,7 @@ if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();
 }
-if($_SESSION['user']['role'] === 'customer') {
+if ($_SESSION['user']['role'] === 'customer') {
     header("Location: access_denied.php");
     exit();
 }
@@ -292,15 +292,15 @@ if (isset($packages['error'])) {
                                                         <i data-lucide="eye" class="w-4 h-4"></i>
                                                         <span class="text-sm">View</span>
                                                     </button>
-                                                    <?php if($_SESSION['user']['role'] === 'super admin' || $_SESSION['user']['role'] === 'admin') { ?>
-                                                    <button class="edit-user-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 font-medium" title="Edit">
-                                                        <i data-lucide="edit" class="w-4 h-4"></i>
-                                                        <span class="text-sm">Edit</span>
-                                                    </button>
-                                                    <button class="delete-user-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-medium" title="Delete">
-                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                        <span class="text-sm">Delete</span>
-                                                    </button>
+                                                    <?php if ($_SESSION['user']['role'] === 'super admin' || $_SESSION['user']['role'] === 'admin') { ?>
+                                                        <button class="edit-user-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 font-medium" title="Edit">
+                                                            <i data-lucide="edit" class="w-4 h-4"></i>
+                                                            <span class="text-sm">Edit</span>
+                                                        </button>
+                                                        <button class="delete-user-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-medium" title="Delete">
+                                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                            <span class="text-sm">Delete</span>
+                                                        </button>
                                                     <?php } ?>
                                                 </div>
                                             </div>
@@ -332,9 +332,14 @@ if (isset($packages['error'])) {
                                                 <button class="edit-user-btn p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded transition-colors" title="Edit">
                                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                                 </button>
-                                                <button class="delete-user-btn p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors" title="Delete">
-                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                </button>
+                                                <?php
+                                                if ($_SESSION['user']['role'] === 'super admin' || $_SESSION['user']['role'] === 'admin') {
+                                                    echo '<button class="delete-user-btn p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors" title="Delete">
+                                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                        </button>';
+                                                }
+                                                ?>
+
                                             </div>
                                         </td>
                                     </tr>
@@ -349,6 +354,9 @@ if (isset($packages['error'])) {
             <?php include "./include/footer.php" ?>
         </div>
     </div>
+    <script>
+        const currentUserRole = <?= json_encode($_SESSION['user']['role']) ?>;
+    </script>
     <!-- footer links  -->
     <?php include "./include/footerLinks.php" ?>
     <?php include "./include/customer-modals.php" ?>

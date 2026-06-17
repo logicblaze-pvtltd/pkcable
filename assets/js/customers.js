@@ -487,10 +487,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i data-lucide="edit" class="w-4 h-4"></i>
                                 <span class="text-sm">Edit</span>
                             </button>
-                            <button type="button" class="delete-user-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-medium" title="Delete">
+                           ${['admin', 'super admin'].includes(currentUserRole) ? `
+                            <button type="button" class="delete-user-btn p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors" title="Delete">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                <span class="text-sm">Delete</span>
                             </button>
+                            ` : ''}
                         </div>
                     </div>
                 </td>
