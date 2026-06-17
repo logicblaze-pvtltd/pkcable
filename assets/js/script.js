@@ -87,9 +87,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if(themeToggle) {
-        themeToggle.addEventListener('click', () => {
+        themeToggle.addEventListener('click', (event) => {
             const isDark = htmlElement.classList.contains('dark');
-            setDarkMode(!isDark);
+            const targetDark = !isDark;
+
+            // Check if document.startViewTransition is supported
+            if (!document.startViewTransition) {
+                setDarkMode(targetDark);
+                return;
+            }
+
+            // Always use page/viewport center for the ripple circle
+            const x = window.innerWidth / 2;
+            const y = window.innerHeight / 2;
+
+            // Calculate distance from center to the furthest corner (which is any corner)
+            const endRadius = Math.hypot(x, y);
+
+            const transition = document.startViewTransition(() => {
+                setDarkMode(targetDark);
+            });
+
+            transition.ready.then(() => {
+                // Always expand the NEW view as a circle from center
+                // This works correctly for BOTH light→dark and dark→light
+                document.documentElement.animate(
+                    {
+                        clipPath: [
+                            `circle(0px at ${x}px ${y}px)`,
+                            `circle(${endRadius}px at ${x}px ${y}px)`
+                        ],
+                    },
+                    {
+                        duration: 500,
+                        easing: 'ease-in-out',
+                        pseudoElement: '::view-transition-new(root)',
+                    }
+                );
+            });
         });
     }
 

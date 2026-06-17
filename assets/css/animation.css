@@ -77,3 +77,21 @@
   25% { transform: translateY(-5px); }
   75% { transform: translateY(2px); }
 }
+
+/* Document View Transition for Smooth Circle Theme Toggle */
+::view-transition-group(root) {
+  animation-duration: 0.5s;
+}
+
+::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+}
+
+
