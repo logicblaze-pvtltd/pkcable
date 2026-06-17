@@ -907,7 +907,6 @@ usort($collectors, function ($a, $b) {
                     </div>
                 </div>
             </main>
-            <?php include './include/export-modal.php' ?>
             <!-- Footer -->
             <?php include "./include/footer.php" ?>
         </div>

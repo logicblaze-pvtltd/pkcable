@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Breadcrumbs Component
  * 
@@ -39,8 +40,10 @@ if (!isset($breadcrumbs)) {
             $breadcrumbs[] = ['title' => 'Login'];
             break;
         default:
-            // For other pages, just show the page name
-            $breadcrumbs[] = ['title' => ucfirst(str_replace(['.php', '.html', '-'], [' ', ' ', ' '], $current_page))];
+            $page = pathinfo($current_page, PATHINFO_FILENAME);
+            $page = str_replace(['_', '-'], ' ', $page);
+            $page = ucwords($page);
+            $breadcrumbs[] = ['title' => $page];
     }
 }
 ?>

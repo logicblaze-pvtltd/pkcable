@@ -1,4 +1,6 @@
 <?php
+// Set Pakistan Standard Time (UTC+5) for the entire application
+date_default_timezone_set('Asia/Karachi');
 /**
  * Database Connection Handler
  * Supports Pakistan Cable database schema with packages, users, and subscriptions tables
@@ -96,7 +98,10 @@ try {
 // Set charset to UTF-8
 $conn->set_charset('utf8mb4');
 
-// Set timezone
+// Set Pakistan timezone for MySQL session (UTC+5:00)
+$conn->query("SET time_zone = '+05:00'");
+
+// Set SQL mode
 $conn->query("SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
 
 // Helper functions for database operations
