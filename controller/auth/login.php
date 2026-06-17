@@ -1,11 +1,11 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 
 require_once '../../include/connection.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../subscription/auto_expired.php';
 
-session_start();
 
 try {
 

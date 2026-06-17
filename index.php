@@ -217,6 +217,7 @@ if (!isset($_SESSION['user'])) {
                                 JOIN packages p ON s.package_id = p.id
                                 WHERE DATE(s.created_at) = CURDATE()
                                 AND s.status != 'cancelled'
+                                AND s.active_by = $userId
                                     ")->fetch_assoc();
                                     
                                     $todayEarningsAmount = $todayEarnings['total_earnings'];
@@ -239,7 +240,7 @@ if (!isset($_SESSION['user'])) {
                                 </p>
 
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    <?= ($role === 'manager') ? "Today's Recovery" : "Pending for this month" ?>
+                                    <?= ($role === 'manager') ? "Today's Recovery By You" : "Pending for this month" ?>
                                 </p>
                             </div>
                         </div>

@@ -29,7 +29,24 @@
                 <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Dashboard"></div>
             </div>
         </a>
-
+        <?php
+        if ($_SESSION['user']['role'] === 'admin') {
+        ?>
+            <a href="revenue_reports.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'revenue_reports' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="user-cog" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Revenue & Collections"></div>
+                </div>
+            </a>
+            <a href="managers.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'managers' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
+                <div class="flex items-center">
+                    <span class="flex items-center justify-center w-8"><i data-lucide="user-cog" class="w-[18px] h-[18px]"></i></span>
+                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Managers"></div>
+                </div>
+            </a>
+        <?php
+        }
+        ?>
         <!-- Submenu Item -->
         <!-- <div class="relative group submenu-wrapper">
             <button class="submenu-toggle flex items-center justify-between w-full px-3 py-2.5 rounded-lg dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group animated-link-group">
@@ -62,16 +79,9 @@
             </a>
         <?php
         }
-        if ($_SESSION['user']['role'] === 'super admin' || $_SESSION['user']['role'] === 'admin') {
         ?>
-            <a href="managers.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'managers' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">
-                <div class="flex items-center">
-                    <span class="flex items-center justify-center w-8"><i data-lucide="user-cog" class="w-[18px] h-[18px]"></i></span>
-                    <div class="wave-label-container ml-2 overflow-hidden h-5" data-wave-label="Managers"></div>
-                </div>
-            </a>
+
         <?php
-        }
         if ($_SESSION['user']['role'] === 'super admin') {
         ?>
             <a href="admins.php" class="animated-link-group flex items-center justify-between w-full px-3 py-2.5 rounded-lg  hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200 group <?php echo basename($_SERVER['PHP_SELF'], '.php') === 'admins' ? 'bg-gray-200 dark:bg-gray-800' : ''; ?>">

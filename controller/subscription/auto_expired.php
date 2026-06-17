@@ -6,10 +6,9 @@ function auto_expired()
 
     try {
         $today = date('Y-m-d');
-        $stmt = $db->prepare("UPDATE subscriptions SET status = 'expired' WHERE end_date <= :today AND status = 'active'");
-        $stmt->execute([':today' => $today]);
+        $stmt = $db->update('subscriptions', ['status' => 'expired'], "end_date <= ? AND status = ?", [$today, 'active']);
 
-        respond(true, 'Expired subscriptions updated successfully');
+        // respond(true, 'Expired subscriptions updated successfully');
     } catch (Exception $e) {
         respond(false, 'Error updating expired subscriptions: ' . $e->getMessage(), [], 500);
     }

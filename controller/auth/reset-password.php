@@ -8,13 +8,7 @@
 header('Content-Type: application/json');
 
 require_once '../../include/connection.php';
-
-function respond($status, $message, $data = [], $code = 200)
-{
-    http_response_code($code);
-    echo json_encode(['status' => $status, 'message' => $message, 'data' => $data]);
-    exit;
-}
+require_once __DIR__ . '/helpers.php';
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

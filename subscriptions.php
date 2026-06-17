@@ -60,37 +60,46 @@ if ($_SESSION['user']['role'] === 'customer') {
                     </div>
 
                     <?php
-                    $sql =
-                        "SELECT
-                                    s.id,
-                                    s.user_id,
-                                    s.package_id,
-                                    u.name AS name,
-                                    u.address AS address,
-                                    p.name AS package_name,
-                                    s.package_price AS package_price,
-                                    au.name AS active_by,
-                                    s.discount,
-                                    (s.package_price - s.discount) AS paid_amount,
-                                    DATE_FORMAT(s.start_date, '%d-%b-%Y') AS start_date,
-                                    DATE_FORMAT(s.end_date, '%d-%b-%Y') AS end_date,
-                                    DATE_FORMAT(s.start_date, '%Y-%m-%d') AS start_raw,
-                                    DATE_FORMAT(s.end_date, '%Y-%m-%d') AS end_raw,
-                                    DATE_FORMAT(s.start_date, '%M %Y') AS package_month,
-                                    s.status
-                                FROM subscriptions s
-                                JOIN users u ON s.user_id = u.id
-                                JOIN packages p ON s.package_id = p.id
-                                LEFT JOIN users au ON s.active_by = au.id";
+                    $sql = "SELECT
+                            s.id,
+                            s.user_id,
+                            s.package_id,
+                            u.name AS name,
+                            u.address AS address,
+                            p.name AS package_name,
+                            s.package_price AS package_price,
+                            au.name AS active_by,
+                            s.discount,
+                            (s.package_price - s.discount) AS paid_amount,
+                            DATE_FORMAT(s.start_date, '%d-%b-%Y') AS start_date,
+                            DATE_FORMAT(s.end_date, '%d-%b-%Y') AS end_date,
+                            DATE_FORMAT(s.start_date, '%Y-%m-%d') AS start_raw,
+                            DATE_FORMAT(s.end_date, '%Y-%m-%d') AS end_raw,
+                            DATE_FORMAT(s.start_date, '%M %Y') AS package_month,
+                            s.status
+                        FROM subscriptions s
+                        JOIN users u ON s.user_id = u.id
+                        JOIN packages p ON s.package_id = p.id
+                        LEFT JOIN users au ON s.active_by = au.id
+                        ";
+
                     $params = [];
+                    $where = [];
+
                     if ($_SESSION['user']['role'] === 'manager') {
-                        $sql .= " WHERE s.active_by = ? ";
+                        $where[] = "s.active_by = ?";
                         $params[] = $_SESSION['user']['id'];
                     }
+
                     if (!empty($_GET['month'])) {
-                        $sql .= "AND DATE_FORMAT(s.created_at, '%Y-%m') = ? ";
+                        $where[] = "DATE_FORMAT(s.created_at, '%Y-%m') = ?";
                         $params[] = $_GET['month'];
                     }
+
+                    if (!empty($where)) {
+                        $sql .= " WHERE " . implode(" AND ", $where);
+                    }
+
                     $sql .= " ORDER BY s.id DESC";
                     $data = $db->select($sql, $params);
 

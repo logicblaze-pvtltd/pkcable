@@ -61,3 +61,10 @@ function customer_fetch_user_record($db, $id)
 
     return $result[0] ?? null;
 }
+
+function respond($status, $message, $data = [], $code = 200)
+{
+    http_response_code($code);
+    echo json_encode(['status' => $status, 'message' => $message, 'data' => $data]);
+    exit;
+}
