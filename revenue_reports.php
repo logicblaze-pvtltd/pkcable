@@ -12,8 +12,38 @@ if ($_SESSION['user']['role'] === 'customer') {
     exit();
 }
 
-$isManager = ($_SESSION['user']['role'] === 'manager');
-$managerId = (int)$_SESSION['user']['id'];
+$isManager   = ($_SESSION['user']['role'] === 'manager');
+$isAdmin     = in_array($_SESSION['user']['role'], ['admin', 'super admin']);
+$managerId   = (int)$_SESSION['user']['id'];
+
+// Admin can optionally filter by a specific manager via GET param
+$selectedManagerId = 0;
+if ($isAdmin && isset($_GET['filter_manager']) && (int)$_GET['filter_manager'] > 0) {
+    $selectedManagerId = (int)$_GET['filter_manager'];
+}
+
+// Effective filter: manager always filters by self, admin filters only if a specific manager is chosen
+$filterByUser = $isManager ? true : ($selectedManagerId > 0);
+$filterUserId = $isManager ? $managerId : $selectedManagerId;
+
+// Fetch manager list for admin dropdown
+$allManagersList = [];
+if ($isAdmin) {
+    $mgrRes = $conn->query("SELECT id, name, user_role FROM users WHERE user_role IN ('manager','admin','super admin') AND status = 'active' ORDER BY name ASC");
+    while ($mRow = $mgrRes->fetch_assoc()) {
+        $allManagersList[] = $mRow;
+    }
+}
+
+// Fetch selected manager name for display
+$selectedManagerName = '';
+if ($filterByUser) {
+    $mnRes = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+    $mnRes->bind_param("i", $filterUserId);
+    $mnRes->execute();
+    $mnRow = $mnRes->get_result()->fetch_assoc();
+    $selectedManagerName = $mnRow['name'] ?? 'Unknown';
+}
 
 // AJAX Request Handler for Daily Collector navigation
 if (isset($_GET['ajax_collector_date'])) {
@@ -26,8 +56,8 @@ if (isset($_GET['ajax_collector_date'])) {
 
     $collectorsList = [];
     $sqlAllCollectors = "SELECT id, name, user_role FROM users WHERE user_role != 'customer'";
-    if ($isManager) {
-        $sqlAllCollectors .= " AND id = " . $managerId;
+    if ($filterByUser) {
+        $sqlAllCollectors .= " AND id = " . $filterUserId;
     }
     $allColsRes = $conn->query($sqlAllCollectors);
     while ($row = $allColsRes->fetch_assoc()) {
@@ -46,14 +76,14 @@ if (isset($_GET['ajax_collector_date'])) {
                      FROM subscriptions s
                      WHERE s.status != 'cancelled'
                        AND s.created_at >= ? AND s.created_at <= ?";
-    if ($isManager) {
+    if ($filterByUser) {
         $sqlCollector .= " AND s.active_by = ?";
     }
     $sqlCollector .= " GROUP BY s.active_by";
 
     $stmtCollector = $conn->prepare($sqlCollector);
-    if ($isManager) {
-        $stmtCollector->bind_param("ssi", $startDateTime, $endDateTime, $managerId);
+    if ($filterByUser) {
+        $stmtCollector->bind_param("ssi", $startDateTime, $endDateTime, $filterUserId);
     } else {
         $stmtCollector->bind_param("ss", $startDateTime, $endDateTime);
     }
@@ -119,6 +149,84 @@ if (isset($_GET['ajax_collector_date'])) {
     exit();
 }
 
+// -------------------------------------------------------
+// AJAX: Collector Detail — subscriptions collected on a date
+// -------------------------------------------------------
+if (isset($_GET['ajax_collector_detail'])) {
+    header('Content-Type: application/json');
+    $ajaxDate      = $_GET['ajax_collector_detail'];
+    $ajaxUserId    = isset($_GET['collector_id']) ? (int)$_GET['collector_id'] : 0;
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ajaxDate) || $ajaxUserId <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+        exit();
+    }
+
+    // Security: manager can only see their own detail
+    if ($isManager && $ajaxUserId !== $managerId) {
+        echo json_encode(['success' => false, 'message' => 'Access denied']);
+        exit();
+    }
+
+    $detailStart = $ajaxDate . ' 00:00:00';
+    $detailEnd   = $ajaxDate . ' 23:59:59';
+
+    $collectorNameRes = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+    $collectorNameRes->bind_param("i", $ajaxUserId);
+    $collectorNameRes->execute();
+    $collectorNameRow = $collectorNameRes->get_result()->fetch_assoc();
+    $collectorName = $collectorNameRow['name'] ?? 'Unknown';
+
+    $sqlDetail = "SELECT 
+                      s.id,
+                      c.name AS customer_name,
+                      c.phone AS customer_phone,
+                      s.package_price,
+                      COALESCE(NULLIF(s.discount,''),0) AS discount,
+                      (s.package_price - COALESCE(NULLIF(s.discount,''),0)) AS net_amount,
+                      s.package_name,
+                      s.status,
+                      s.created_at,
+                      s.expiry_date
+                  FROM subscriptions s
+                  LEFT JOIN customers c ON c.id = s.customer_id
+                  WHERE s.active_by = ?
+                    AND s.status != 'cancelled'
+                    AND s.created_at >= ? AND s.created_at <= ?
+                  ORDER BY s.created_at ASC";
+    $stmtDetail = $conn->prepare($sqlDetail);
+    $stmtDetail->bind_param("iss", $ajaxUserId, $detailStart, $detailEnd);
+    $stmtDetail->execute();
+    $resDetail = $stmtDetail->get_result();
+
+    $records = [];
+    $totalNet = 0.0;
+    while ($r = $resDetail->fetch_assoc()) {
+        $totalNet += (float)$r['net_amount'];
+        $records[] = [
+            'sub_id'          => (int)$r['id'],
+            'customer_name'   => $r['customer_name'] ?? 'N/A',
+            'customer_phone'  => $r['customer_phone'] ?? '',
+            'package_name'    => $r['package_name'] ?? '',
+            'package_price'   => (float)$r['package_price'],
+            'discount'        => (float)$r['discount'],
+            'net_amount'      => (float)$r['net_amount'],
+            'status'          => $r['status'],
+            'created_at'      => date('d-M-Y g:i A', strtotime($r['created_at'])),
+            'expiry_date'     => $r['expiry_date'] ? date('d-M-Y', strtotime($r['expiry_date'])) : '-',
+        ];
+    }
+
+    echo json_encode([
+        'success'        => true,
+        'collector_name' => $collectorName,
+        'date'           => date('d-M-Y', strtotime($ajaxDate)),
+        'total_net'      => $totalNet,
+        'records'        => $records
+    ]);
+    exit();
+}
+
 // Get available years for filtering
 $yearsQuery = $conn->query("
     SELECT DISTINCT YEAR(created_at) AS yr 
@@ -165,12 +273,12 @@ $sqlMonth = "SELECT SUM(s.package_price - COALESCE(NULLIF(s.discount, ''), 0)) A
              WHERE s.status != 'cancelled'
                AND YEAR(s.created_at) = ?
                AND MONTH(s.created_at) = ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlMonth .= " AND s.active_by = ?";
 }
 $stmtMonth = $conn->prepare($sqlMonth);
-if ($isManager) {
-    $stmtMonth->bind_param("iii", $selectedYear, $selectedMonth, $managerId);
+if ($filterByUser) {
+    $stmtMonth->bind_param("iii", $selectedYear, $selectedMonth, $filterUserId);
 } else {
     $stmtMonth->bind_param("ii", $selectedYear, $selectedMonth);
 }
@@ -184,12 +292,12 @@ $sqlYear = "SELECT SUM(s.package_price - COALESCE(NULLIF(s.discount, ''), 0)) AS
             FROM subscriptions s
             WHERE s.status != 'cancelled'
               AND YEAR(s.created_at) = ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlYear .= " AND s.active_by = ?";
 }
 $stmtYear = $conn->prepare($sqlYear);
-if ($isManager) {
-    $stmtYear->bind_param("ii", $selectedYear, $managerId);
+if ($filterByUser) {
+    $stmtYear->bind_param("ii", $selectedYear, $filterUserId);
 } else {
     $stmtYear->bind_param("i", $selectedYear);
 }
@@ -199,8 +307,8 @@ $yearRevenue = (float)($resYear['total'] ?? 0);
 
 // Total Active Subscriptions
 $sqlActive = "SELECT COUNT(*) AS total FROM subscriptions s WHERE s.status = 'active'";
-if ($isManager) {
-    $sqlActive .= " AND s.active_by = $managerId";
+if ($filterByUser) {
+    $sqlActive .= " AND s.active_by = $filterUserId";
 }
 $activeSubsCount = (int)($conn->query($sqlActive)->fetch_assoc()['total'] ?? 0);
 
@@ -216,12 +324,12 @@ $sqlPrevMonth = "SELECT SUM(s.package_price - COALESCE(NULLIF(s.discount, ''), 0
                  WHERE s.status != 'cancelled'
                    AND YEAR(s.created_at) = ?
                    AND MONTH(s.created_at) = ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlPrevMonth .= " AND s.active_by = ?";
 }
 $stmtPrevMonth = $conn->prepare($sqlPrevMonth);
-if ($isManager) {
-    $stmtPrevMonth->bind_param("iii", $prevYear, $prevMonth, $managerId);
+if ($filterByUser) {
+    $stmtPrevMonth->bind_param("iii", $prevYear, $prevMonth, $filterUserId);
 } else {
     $stmtPrevMonth->bind_param("ii", $prevYear, $prevMonth);
 }
@@ -245,14 +353,14 @@ $sqlDaily = "SELECT
              FROM subscriptions s
              WHERE s.status != 'cancelled'
                AND s.created_at >= ? AND s.created_at <= ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlDaily .= " AND s.active_by = ?";
 }
 $sqlDaily .= " GROUP BY DATE(s.created_at) ORDER BY col_date ASC";
 
 $stmtDaily = $conn->prepare($sqlDaily);
-if ($isManager) {
-    $stmtDaily->bind_param("ssi", $startDateTime, $endDateTime, $managerId);
+if ($filterByUser) {
+    $stmtDaily->bind_param("ssi", $startDateTime, $endDateTime, $filterUserId);
 } else {
     $stmtDaily->bind_param("ss", $startDateTime, $endDateTime);
 }
@@ -302,14 +410,14 @@ $sqlCurrYearMonthly = "SELECT
                        FROM subscriptions s
                        WHERE s.status != 'cancelled'
                          AND YEAR(s.created_at) = ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlCurrYearMonthly .= " AND s.active_by = ?";
 }
 $sqlCurrYearMonthly .= " GROUP BY MONTH(s.created_at)";
 
 $stmtCurrYear = $conn->prepare($sqlCurrYearMonthly);
-if ($isManager) {
-    $stmtCurrYear->bind_param("ii", $selectedYear, $managerId);
+if ($filterByUser) {
+    $stmtCurrYear->bind_param("ii", $selectedYear, $filterUserId);
 } else {
     $stmtCurrYear->bind_param("i", $selectedYear);
 }
@@ -330,14 +438,14 @@ $sqlPrevYearMonthly = "SELECT
                        FROM subscriptions s
                        WHERE s.status != 'cancelled'
                          AND YEAR(s.created_at) = ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlPrevYearMonthly .= " AND s.active_by = ?";
 }
 $sqlPrevYearMonthly .= " GROUP BY MONTH(s.created_at)";
 
 $stmtPrevYear = $conn->prepare($sqlPrevYearMonthly);
-if ($isManager) {
-    $stmtPrevYear->bind_param("ii", $prevYearVal, $managerId);
+if ($filterByUser) {
+    $stmtPrevYear->bind_param("ii", $prevYearVal, $filterUserId);
 } else {
     $stmtPrevYear->bind_param("i", $prevYearVal);
 }
@@ -356,8 +464,8 @@ $monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "O
 $todayDate = date('Y-m-d');
 $initialCollectorsList = [];
 $sqlAllCollectors = "SELECT id, name, user_role FROM users WHERE user_role != 'customer'";
-if ($isManager) {
-    $sqlAllCollectors .= " AND id = " . $managerId;
+if ($filterByUser) {
+    $sqlAllCollectors .= " AND id = " . $filterUserId;
 }
 $allColsRes = $conn->query($sqlAllCollectors);
 while ($row = $allColsRes->fetch_assoc()) {
@@ -376,14 +484,14 @@ $sqlCollectorToday = "SELECT
                       FROM subscriptions s
                       WHERE s.status != 'cancelled'
                         AND s.created_at >= ? AND s.created_at <= ?";
-if ($isManager) {
+if ($filterByUser) {
     $sqlCollectorToday .= " AND s.active_by = ?";
 }
 $sqlCollectorToday .= " GROUP BY s.active_by";
 
 $stmtCollectorToday = $conn->prepare($sqlCollectorToday);
-if ($isManager) {
-    $stmtCollectorToday->bind_param("ssi", $startDateTimeToday, $endDateTimeToday, $managerId);
+if ($filterByUser) {
+    $stmtCollectorToday->bind_param("ssi", $startDateTimeToday, $endDateTimeToday, $filterUserId);
 } else {
     $stmtCollectorToday->bind_param("ss", $startDateTimeToday, $endDateTimeToday);
 }
@@ -429,6 +537,7 @@ foreach ($initialCollectorsList as $colId => $colData) {
         $revenue   = $collectionsMapToday[$colId]['user_revenue'];
     }
     $collectors[] = [
+        'collector_id'   => $colId,
         'collector_name' => $colData['name'],
         'collector_role' => $colData['role'],
         'subs_count'     => $subsCount,
@@ -451,15 +560,15 @@ usort($collectors, function ($a, $b) {
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> - Revenue Reports</title>
     <!-- header links -->
     <?php include "./include/headerLinks.php" ?>
-    <!-- ApexCharts CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- ApexCharts (Local) -->
+    <script src="node_modules/apexcharts/dist/apexcharts.min.js"></script>
     <link rel="stylesheet" href="assets/css/datePicker.css">
-    <!-- For Excel Export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- For Excel Export (Local) -->
+    <script src="node_modules/xlsx/dist/xlsx.full.min.js"></script>
 
-    <!-- For PDF Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- For PDF Export (Local) -->
+    <script src="node_modules/jspdf/dist/jspdf.umd.min.js"></script>
+    <script src="node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body class="bg-[#f3f4f4] text-gray-800 dark:text-gray-200" style="overflow-x:hidden">
@@ -546,7 +655,7 @@ usort($collectors, function ($a, $b) {
 
                 <div class="animate-fade-in-up">
                     <!-- Page Header -->
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
                         <div>
                             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                 <i data-lucide="bar-chart-3" class="w-8 h-8 text-blue-500"></i>
@@ -556,6 +665,28 @@ usort($collectors, function ($a, $b) {
                                 Visualize collections trends, collector statistics, and comparisons.
                             </p>
                         </div>
+
+                        <?php if ($isAdmin || $isManager): ?>
+                        <div class="w-full sm:w-auto">
+                            <?php if ($isManager): ?>
+                                <div class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-xl">
+                                    <i data-lucide="shield-check" class="w-4 h-4 text-indigo-500"></i>
+                                    <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Viewing: My Records Only</span>
+                                </div>
+                            <?php elseif ($selectedManagerId > 0): ?>
+                                <div class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
+                                    <i data-lucide="user-check" class="w-4 h-4 text-amber-500"></i>
+                                    <span class="text-sm font-medium text-amber-700 dark:text-amber-300">Filtered: <?= htmlspecialchars($selectedManagerName) ?></span>
+                                </div>
+                            <?php else: ?>
+                                <div class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl">
+                                    <i data-lucide="users" class="w-4 h-4 text-emerald-500"></i>
+                                    <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Viewing: All Collectors</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Export Buttons -->
                         <div class="flex items-center gap-2 flex-wrap">
                             <button id="exportExcelBtn"
@@ -577,7 +708,7 @@ usort($collectors, function ($a, $b) {
                             <i data-lucide="sliders" class="w-4 h-4 text-blue-500"></i>
                             <span>Interactive Filters</span>
                         </h2>
-                        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 <?= $isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4' ?> gap-4 items-end">
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Report Year</label>
                                 <select id="filter-year" name="year" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-800 dark:text-gray-200 transition-colors">
@@ -628,7 +759,26 @@ usort($collectors, function ($a, $b) {
                                 <input type="hidden" id="endDateHidden" name="end_date" value="<?= htmlspecialchars($endDate) ?>">
                             </div>
 
-                            <div class="sm:col-span-2 lg:col-span-4 flex justify-end gap-3 mt-2">
+                            <?php if ($isAdmin): ?>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Filter by Collector</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i data-lucide="user" class="w-3.5 h-3.5 text-gray-400"></i>
+                                    </div>
+                                    <select id="filter-manager" name="filter_manager" class="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-800 dark:text-gray-200 transition-colors">
+                                        <option value="0" <?= $selectedManagerId === 0 ? 'selected' : '' ?>>All Collectors</option>
+                                        <?php foreach ($allManagersList as $mgr): ?>
+                                            <option value="<?= (int)$mgr['id'] ?>" <?= $selectedManagerId === (int)$mgr['id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($mgr['name']) ?> (<?= ucfirst($mgr['user_role']) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
+                            <div class="sm:col-span-2 lg:col-span-<?= $isAdmin ? '5' : '4' ?> flex justify-end gap-3 mt-2">
                                 <a href="revenue_reports.php" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl transition-all text-sm font-medium flex items-center gap-1.5 shadow-sm">
                                     <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reset
                                 </a>
@@ -796,6 +946,7 @@ usort($collectors, function ($a, $b) {
                                             <th class="py-3 px-4">Role</th>
                                             <th class="py-3 px-4 text-center">Subscriptions</th>
                                             <th class="py-3 px-4 text-right">Amount Collected</th>
+                                            <th class="py-3 px-4 text-center">Details</th>
                                         </tr>
                                     </thead>
                                     <tbody id="collectors-table-body" class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300 transition-opacity duration-200">
@@ -807,7 +958,10 @@ usort($collectors, function ($a, $b) {
                                             </tr>
                                         <?php else: ?>
                                             <?php foreach ($collectors as $row): ?>
-                                                <tr class="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors">
+                                                <tr class="collector-row hover:bg-blue-50/40 dark:hover:bg-blue-900/15 transition-colors cursor-pointer group"
+                                                    data-collector-id="<?= (int)($row['collector_id'] ?? 0) ?>"
+                                                    data-collector-date="<?= date('Y-m-d') ?>"
+                                                    title="Click to view subscriptions">
                                                     <td class="py-3 px-4 font-semibold text-gray-900 dark:text-white">
                                                         <?= htmlspecialchars($row['collector_name']) ?>
                                                     </td>
@@ -835,6 +989,11 @@ usort($collectors, function ($a, $b) {
                                                     </td>
                                                     <td class="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">
                                                         Rs. <?= number_format($row['user_revenue'], 0) ?>
+                                                    </td>
+                                                    <td class="py-3 px-4 text-center">
+                                                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-800/40 transition-colors">
+                                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                                        </span>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

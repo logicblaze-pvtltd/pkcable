@@ -12,9 +12,13 @@
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fortawesome/fontawesome-free": "^7.2.0",
+    "apexcharts": "^5.15.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide": "^1.18.0",
     "perfect-scrollbar": "^1.5.6",
     "simple-datatables": "^10.2.0",
-    "sweetalert2": "^11.26.25"
+    "sweetalert2": "^11.26.25",
+    "xlsx": "^0.18.5"
   }
 }
