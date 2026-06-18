@@ -462,7 +462,11 @@ usort($collectors, function ($a, $b) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 
-<body class="bg-[#f3f4f4] text-gray-800 dark:text-gray-200 no-transition" style="overflow-x:hidden">
+<body class="bg-[#f3f4f4] text-gray-800 dark:text-gray-200" style="overflow-x:hidden">
+    <!-- ======================================== -->
+    <!-- PAGE LOADER - Include right after body -->
+    <!-- ======================================== -->
+    <?php include "./include/loader.php"; ?>
     <style>
         /* Export button animations */
         #exportExcelBtn,
@@ -729,7 +733,7 @@ usort($collectors, function ($a, $b) {
 
                     <!-- Charts Grid -->
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-4">
-                         <!-- Chart 1: Monthly Comparison -->
+                        <!-- Chart 1: Monthly Comparison -->
                         <div class="xl:col-span-5 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-3 border border-gray-100 dark:border-gray-700/50">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
@@ -1427,7 +1431,7 @@ usort($collectors, function ($a, $b) {
                         name: cells[0].textContent.trim(),
                         role: cells[1].textContent.trim(),
                         subscriptions: parseInt(cells[2].textContent.trim()),
-                        revenue: cells[3].textContent.replace(/Rs\.?\s*/i, '').trim()// Remove "Rs." and commas
+                        revenue: cells[3].textContent.replace(/Rs\.?\s*/i, '').trim() // Remove "Rs." and commas
                     });
                 }
                 console.log('Collector Data for Export:', collectorRows);

@@ -23,6 +23,10 @@ if (!isset($_SESSION['user'])) {
 </head>
 
 <body class="bg-[#f3f4f4] text-gray-800 dark:text-gray-200 no-transition" style="overflow-x:hidden">
+    <!-- ======================================== -->
+    <!-- PAGE LOADER - Include right after body -->
+    <!-- ======================================== -->
+    <?php include "./include/loader.php"; ?>
     <div class="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
 
         <!-- Overlay for mobile sidebar -->
@@ -192,7 +196,7 @@ if (!isset($_SESSION['user'])) {
                             </div>
                         </a>
                         <?php
-                        if($_SESSION['user']['role'] === 'admin'){
+                        if ($_SESSION['user']['role'] === 'admin') {
                             $pending = $conn->query("
                             SELECT COALESCE(SUM(p.price), 0) AS pending_amount
                             FROM users u
@@ -207,9 +211,9 @@ if (!isset($_SESSION['user'])) {
                                     AND YEAR(s.start_date) = YEAR(CURDATE())
                                     )
                                     ")->fetch_assoc();
-                                    
-                                    $pendingAmount = $pending['pending_amount'];
-                        }else{
+
+                            $pendingAmount = $pending['pending_amount'];
+                        } else {
                             $todayEarnings = $conn->query("
                             SELECT 
                                     COALESCE(SUM(p.price - IFNULL(s.discount, 0)), 0) AS total_earnings
@@ -219,8 +223,8 @@ if (!isset($_SESSION['user'])) {
                                 AND s.status != 'cancelled'
                                 AND s.active_by = $userId
                                     ")->fetch_assoc();
-                                    
-                                    $todayEarningsAmount = $todayEarnings['total_earnings'];
+
+                            $todayEarningsAmount = $todayEarnings['total_earnings'];
                         }
                         ?>
                         <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition-all duration-300">

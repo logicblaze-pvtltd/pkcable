@@ -1,0 +1,244 @@
+/* ========================================
+   PAGE LOADER - Reusable Component
+   ======================================== */
+
+/* Full page loader overlay */
+#page-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    background: linear-gradient(135deg, #f3f4f4 0%, #e8edf2 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+/* Dark mode support */
+.dark #page-loader {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+/* Hidden state */
+#page-loader.loader-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Loader container */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+/* ========================================
+   SPINNER ANIMATION
+   ======================================== */
+
+.loader-spinner {
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.loader-spinner .spinner-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.loader-spinner .spinner-ring:nth-child(1) {
+    border-top-color: #0087E4;
+    animation-delay: 0s;
+}
+
+.loader-spinner .spinner-ring:nth-child(2) {
+    border-right-color: #DB0A06;
+    animation-delay: 0.2s;
+}
+
+.loader-spinner .spinner-ring:nth-child(3) {
+    border-bottom-color: #f59e0b;
+    animation-delay: 0.4s;
+}
+
+.loader-spinner .spinner-ring:nth-child(4) {
+    border-left-color: #068303;
+    animation-delay: 0.6s;
+}
+
+/* Inner circle with icon */
+.loader-spinner .loader-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: #3b82f6;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.dark .loader-spinner .loader-icon {
+    background: #60a5fa;
+    box-shadow: 0 8px 32px rgba(96, 165, 250, 0.3);
+}
+
+/* ========================================
+   LOADING TEXT
+   ======================================== */
+
+.loader-text {
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.dark .loader-text {
+    color: #e5e7eb;
+}
+
+.loader-text .dot {
+    display: inline-block;
+    animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.loader-text .dot:nth-child(1) { animation-delay: 0s; }
+.loader-text .dot:nth-child(2) { animation-delay: 0.2s; }
+.loader-text .dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+
+.loader-progress-wrapper {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.loader-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.dark .loader-progress-bar {
+    background: rgba(96, 165, 250, 0.15);
+}
+
+.loader-progress-bar .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0087E4, #DB0A06, #f59e0b, #068303);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.loader-progress-text {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+.dark .loader-progress-text {
+    color: #9ca3af;
+}
+
+/* ========================================
+   KEYFRAMES - ANIMATIONS
+   ======================================== */
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes dotBounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+}
+
+/* ========================================
+   MINI LOADER - For inline use
+   ======================================== */
+
+.loader-mini {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(59, 130, 246, 0.2);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.loader-mini-sm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
+.loader-mini-lg {
+    width: 30px;
+    height: 30px;
+    border-width: 4px;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 640px) {
+    .loader-spinner {
+        width: 60px;
+        height: 60px;
+    }
+
+    .loader-spinner .loader-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .loader-spinner .loader-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .loader-text {
+        font-size: 14px;
+    }
+
+    .loader-progress-wrapper {
+        width: 180px;
+    }
+}

@@ -5,7 +5,7 @@ if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();
 }
-if($_SESSION['user']['role'] === 'customer') {
+if ($_SESSION['user']['role'] === 'customer') {
     header("Location: access_denied.php");
     exit();
 }
@@ -25,6 +25,10 @@ if($_SESSION['user']['role'] === 'customer') {
 </head>
 
 <body class="bg-[#f3f4f4] text-gray-800 dark:text-gray-200 no-transition" style="overflow-x:hidden">
+    <!-- ======================================== -->
+    <!-- PAGE LOADER - Include right after body -->
+    <!-- ======================================== -->
+    <?php include "./include/loader.php"; ?>
     <div class="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
 
         <!-- Overlay for mobile sidebar -->

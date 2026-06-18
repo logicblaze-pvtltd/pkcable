@@ -149,14 +149,14 @@ function safe($value, $default = '')
     <!-- header links -->
     <?php include "./include/headerLinks.php" ?>
     <link rel="stylesheet" href="assets/css/datePicker.css">
-    
+
     <!-- Modern UI Styles -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
         * {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
-        
+
         /* Modern glass morphism effects */
         .glass-card {
             background: rgba(255, 255, 255, 0.85);
@@ -165,24 +165,24 @@ function safe($value, $default = '')
             box-shadow: 0 12px 35px -12px rgba(0, 0, 0, 0.08);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .dark .glass-card {
             background: rgba(30, 35, 48, 0.85);
             border-color: rgba(255, 255, 255, 0.08);
         }
-        
+
         .glass-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 25px 40px -18px rgba(0, 0, 0, 0.2);
         }
-        
+
         /* Animated gradient banner */
         .gradient-banner {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             position: relative;
             overflow: hidden;
         }
-        
+
         .gradient-banner::before {
             content: '';
             position: absolute;
@@ -190,51 +190,66 @@ function safe($value, $default = '')
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             animation: shimmer 8s infinite;
         }
-        
+
         @keyframes shimmer {
-            0% { left: -100%; }
-            50% { left: 100%; }
-            100% { left: 100%; }
+            0% {
+                left: -100%;
+            }
+
+            50% {
+                left: 100%;
+            }
+
+            100% {
+                left: 100%;
+            }
         }
-        
+
         /* Avatar pulse animation */
         .avatar-pulse {
             animation: pulseGlow 2s infinite;
         }
-        
+
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
-            50% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 15px rgba(99, 102, 241, 0);
+            }
         }
-        
+
         /* Modern input styles */
         .modern-input {
             transition: all 0.2s ease;
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(203, 213, 225, 0.5);
         }
-        
+
         .modern-input:focus {
             border-color: #6366f1;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
             background: white;
         }
-        
+
         .dark .modern-input {
             background: rgba(51, 65, 85, 0.7);
             border-color: rgba(71, 85, 105, 0.5);
         }
-        
+
         /* Button hover effects */
         .btn-modern {
             position: relative;
             overflow: hidden;
             transition: all 0.3s ease;
         }
-        
+
         .btn-modern::before {
             content: '';
             position: absolute;
@@ -247,65 +262,66 @@ function safe($value, $default = '')
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
         }
-        
+
         .btn-modern:hover::before {
             width: 300px;
             height: 300px;
         }
-        
+
         /* Toast animation */
         .toast-modern {
             animation: slideUpFade 0.3s ease-out;
         }
-        
+
         @keyframes slideUpFade {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         /* Table styles */
         .table-modern {
             border-collapse: separate;
             border-spacing: 0;
         }
-        
+
         .table-modern tbody tr {
             transition: all 0.2s;
         }
-        
+
         .table-modern tbody tr:hover {
             background: rgba(99, 102, 241, 0.05);
             transform: scale(1.01);
         }
-        
+
         /* Scrollbar */
         .custom-scroll::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
-        
+
         .custom-scroll::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.05);
             border-radius: 10px;
         }
-        
+
         .custom-scroll::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 10px;
         }
-        
+
         /* Badge styles */
         .badge-active {
             background: linear-gradient(135deg, #10b981, #059669);
             box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
-        
+
         .badge-expired {
             background: linear-gradient(135deg, #ef4444, #dc2626);
         }
@@ -313,6 +329,10 @@ function safe($value, $default = '')
 </head>
 
 <body class="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-gray-800 dark:text-gray-200">
+    <!-- ======================================== -->
+    <!-- PAGE LOADER - Include right after body -->
+    <!-- ======================================== -->
+    <?php include "./include/loader.php"; ?>
     <div class="flex flex-col min-h-screen overflow-hidden">
 
         <!-- Overlay for mobile sidebar -->
@@ -333,13 +353,13 @@ function safe($value, $default = '')
                 <?php include "./include/breadcrumbs.php" ?>
 
                 <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-                    
+
                     <!-- Modern Hero Section -->
                     <div class="relative mb-20">
                         <!-- Animated Banner -->
                         <div class="gradient-banner h-48 w-full rounded-3xl overflow-hidden shadow-2xl">
                             <div class="absolute inset-0 bg-black/20"></div>
-                            <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.08"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+                            <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=" 60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" %3E%3Cg fill="none" fill-rule="evenodd" %3E%3Cg fill="%23ffffff" fill-opacity="0.08" %3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z" /%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
                         </div>
 
                         <!-- Floating Avatar Card -->
@@ -509,7 +529,7 @@ function safe($value, $default = '')
                                         ✓ Profile updated successfully!
                                     </div>
                                 </form>
-                                
+
                                 <!-- Change Password Section -->
                                 <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                                     <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
@@ -532,33 +552,33 @@ function safe($value, $default = '')
                                         </button>
                                     </form>
                                 </div>
-                            <!-- Subscription History Card -->
-                            <div class="glass-card rounded-3xl p-8" <?php if (!empty($subscriptionHistory)): ?> style="display: block;" <?php else: ?> style="display: none;" <?php endif; ?>>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-700 pb-4 flex items-center gap-2">
-                                    <i data-lucide="history" class="w-5 h-5 text-purple-500"></i>
-                                    Subscription History
-                                </h3>
-                                <div class="overflow-x-auto">
-                                    <table class="table-modern w-full">
-                                        <thead>
-                                            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                                                <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">Package</th>
-                                                <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">Start Date</th>
-                                                <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">End Date</th>
-                                                <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="subscription-history">
-                                            <tr>
-                                                <td colspan="4" class="text-center py-8 text-gray-500">Loading subscription history...</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <!-- Subscription History Card -->
+                                <div class="glass-card rounded-3xl p-8" <?php if (!empty($subscriptionHistory)): ?> style="display: block;" <?php else: ?> style="display: none;" <?php endif; ?>>
+                                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-700 pb-4 flex items-center gap-2">
+                                        <i data-lucide="history" class="w-5 h-5 text-purple-500"></i>
+                                        Subscription History
+                                    </h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="table-modern w-full">
+                                            <thead>
+                                                <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                                                    <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">Package</th>
+                                                    <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">Start Date</th>
+                                                    <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">End Date</th>
+                                                    <th class="text-left py-3 px-2 text-sm font-semibold text-gray-600 dark:text-gray-400">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="subscription-history">
+                                                <tr>
+                                                    <td colspan="4" class="text-center py-8 text-gray-500">Loading subscription history...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
             </main>
 
             <!-- Footer -->
@@ -706,15 +726,15 @@ function safe($value, $default = '')
                 div.textContent = text;
                 return div.innerHTML;
             }
-            
+
             // Show toast notification
             function showToast(message, type = 'success') {
                 const toast = document.getElementById('toast');
                 const toastMessage = document.getElementById('toast-message');
                 const toastIcon = toast.querySelector('i');
-                
+
                 toastMessage.textContent = message;
-                
+
                 if (type === 'error') {
                     toastIcon.setAttribute('data-lucide', 'alert-circle');
                     toast.querySelector('.border-l-4').classList.remove('border-green-500');
@@ -728,16 +748,16 @@ function safe($value, $default = '')
                     toastIcon.classList.remove('text-red-500');
                     toastIcon.classList.add('text-green-500');
                 }
-                
+
                 if (typeof lucide !== 'undefined') lucide.createIcons();
-                
+
                 toast.classList.remove('hidden');
                 setTimeout(() => {
                     toast.classList.add('hidden');
                 }, 3000);
             }
         });
-        
+
         // Password form submission
         document.getElementById('password-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -750,12 +770,12 @@ function safe($value, $default = '')
                 showToast('All fields required', 'error');
                 return;
             }
-            
+
             if (newPass !== confirm) {
                 showToast('New passwords do not match', 'error');
                 return;
             }
-            
+
             if (newPass.length < 6) {
                 showToast('Password must be at least 6 characters', 'error');
                 return;

@@ -44,4 +44,8 @@
      <link rel="stylesheet" href="assets/css/modal.css">
      <link rel="stylesheet" href="node_modules/simple-datatables/dist/style.css">
      <link rel="stylesheet" href="assets/css/simple-datatables.css">
+     <!-- ======================================== -->
+     <!-- PAGE LOADER CSS -->
+     <!-- ======================================== -->
+     <link rel="stylesheet" href="assets/css/loader.css">
      <?php include_once "./helpers/helpers.php" ?>

@@ -12,10 +12,14 @@ require_once './include/connection.php';
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> - Sign In</title>
     <?php include './include/headerLinks.php' ?>
     <link rel="stylesheet" href="./assets/css/login.css">
+    <link rel="stylesheet" href="./assets/css/loader.css">
 </head>
 
 <body class="bg-gray-900 dark:bg-gray-900 h-screen overflow-hidden transition-colors duration-500">
-
+    <!-- ======================================== -->
+    <!-- PAGE LOADER - Include right after body -->
+    <!-- ======================================== -->
+    <?php include "./include/loader.php"; ?>
     <!-- Parallax Background -->
     <div id="parallax-bg" class="fixed inset-0 w-full h-full z-0 transition-colors duration-500 ease-in-out bg-[#f3f4f4] dark:bg-[#030712]">
         <!-- Gradient overlay -->
@@ -263,6 +267,7 @@ require_once './include/connection.php';
             </div>
         </div>
     </div>
+    <script src="./assets/js/loader.js"></script>
     <script src="./assets/js/button-loading.js"></script>
     <script src="./assets/js/login.js"></script>
     <script src="./assets/js/passwordShowHide.js"></script>
