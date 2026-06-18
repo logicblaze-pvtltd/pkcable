@@ -734,7 +734,7 @@ usort($collectors, function ($a, $b) {
                     <!-- Charts Grid -->
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-4">
                         <!-- Chart 1: Monthly Comparison -->
-                        <div class="xl:col-span-5 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-3 border border-gray-100 dark:border-gray-700/50">
+                        <div class="xl:col-span-5 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-3 border border-gray-100 dark:border-gray-700/50 min-w-0">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                     <i data-lucide="columns-2" class="w-5 h-5 text-indigo-500"></i>
@@ -747,7 +747,7 @@ usort($collectors, function ($a, $b) {
                             <div id="monthly-comparison-chart" class="w-full"></div>
                         </div>
                         <!-- Chart 2: Daily Area Trend -->
-                        <div class="xl:col-span-7 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-100 dark:border-gray-700/50">
+                        <div class="xl:col-span-7 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-100 dark:border-gray-700/50 min-w-0">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                     <i data-lucide="activity" class="w-5 h-5 text-blue-500"></i>
@@ -875,11 +875,15 @@ usort($collectors, function ($a, $b) {
                                             $isCurrentActive = ((int)date('Y') === $selectedYear && (int)date('m') === $m);
                                         ?>
                                             <tr class="hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-colors <?= $isCurrentActive ? 'bg-indigo-50/40 dark:bg-indigo-900/10 border-l-4 border-indigo-500' : '' ?>">
-                                                <td class="py-2.5 px-2 font-medium flex items-center gap-1.5 whitespace-nowrap">
-                                                    <span><?= $monthNames[$m - 1] ?></span>
-                                                    <?php if ($isCurrentActive): ?>
-                                                        <span class="text-[9px] px-1.5 py-0.5 bg-indigo-500 text-white font-bold rounded-full uppercase tracking-wide animate-pulse">Curent Month</span>
-                                                    <?php endif; ?>
+                                                <td class="py-2.5 px-2 font-medium whitespace-nowrap">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <p>
+                                                        <span><?= $monthNames[$m - 1] ?></span>
+                                                        <?php if ($isCurrentActive): ?>
+                                                            <span class="text-[9px] px-1.5 py-0.5 bg-indigo-500 text-white font-bold rounded-full uppercase tracking-wide animate-pulse">Active</span>
+                                                        <?php endif; ?>
+                                                        </p>
+                                                    </div>
                                                 </td>
                                                 <td class="py-2.5 px-2 text-right font-bold text-gray-900 dark:text-white">
                                                     Rs. <?= number_format($currRev, 0) ?>
@@ -1107,6 +1111,7 @@ usort($collectors, function ($a, $b) {
                 chart: {
                     type: 'area',
                     height: 320,
+                    width: '100%',
                     toolbar: {
                         show: false
                     },
@@ -1205,6 +1210,7 @@ usort($collectors, function ($a, $b) {
                 chart: {
                     type: 'bar',
                     height: 320,
+                    width: '100%',
                     toolbar: {
                         show: false
                     },
@@ -1407,6 +1413,11 @@ usort($collectors, function ($a, $b) {
             // Sync dates on year or month change
             yearSelector.addEventListener('change', syncDateInputs);
             monthSelector.addEventListener('change', syncDateInputs);
+
+            // Force redraw after page settles to fix initial layout sizing
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 350);
         });
         // ============================================
         // EXPORT FUNCTIONS

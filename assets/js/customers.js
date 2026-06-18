@@ -407,6 +407,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function buildCustomerRowMarkup(data) {
+        // Debug karein:
+        console.log('Current Role:', currentUserRole);
+        console.log('Is Admin?', currentUserRole == 'admin');
+        console.log('Condition result:', currentUserRole == 'admin' ? 'SHOWING' : 'HIDDEN');
         const customer = normalizeCustomerData(data);
         const customerId = customer.id !== null ? customer.id : getNextCustomerId();
         const customerIdDisplay = customer.idDisplay || formatCustomerId(customerId);
@@ -487,11 +491,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i data-lucide="edit" class="w-4 h-4"></i>
                                 <span class="text-sm">Edit</span>
                             </button>
-                           ${['admin', 'super admin'].includes(currentUserRole) ? `
-                            <button type="button" class="delete-user-btn p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors" title="Delete">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                            ` : ''}
+                          ${currentUserRole === 'admin' ? `
+                                <button type="button" id="admin-delete-btn" class="delete-user-btn ...">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>` : ''}
                         </div>
                     </div>
                 </td>
@@ -516,9 +519,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button type="button" class="edit-user-btn p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded transition-colors" title="Edit">
                             <i data-lucide="edit" class="w-4 h-4"></i>
                         </button>
+                        ${currentUserRole === 'admin' ? `
                         <button type="button" class="delete-user-btn p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors" title="Delete">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
+                        </button>`:''}
                     </div>
                 </td>
             </tr>

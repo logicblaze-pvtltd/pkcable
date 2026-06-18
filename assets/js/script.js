@@ -278,6 +278,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (sidebarPinned) {
                 sidebar.classList.remove('shadow-2xl', 'dark:shadow-gray-700');
             }
+
+            // Force charts to resize after sidebar transition completes
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 350);
         });
     }
 

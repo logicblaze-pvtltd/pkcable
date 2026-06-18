@@ -1,8 +1,13 @@
+<?php
+$currentPage = basename($_SERVER['PHP_SELF']);
+$isLoginPage = ($currentPage === 'login.php' || $currentPage === 'forgot-password.php');
+?>
 <!-- ========================================
      PAGE LOADER - Include this file in your pages
      Place it right after the <body> tag
      ======================================== -->
 
+<?php if ($isLoginPage): ?>
 <div id="page-loader">
     <div class="loader-container">
         <!-- Spinner -->
@@ -49,3 +54,58 @@
         </div>
     </div>
 </div>
+<?php else: ?>
+<div id="page-loader" class="skeleton-page-loader">
+    <!-- Sidebar Skeleton -->
+    <div class="skeleton-sidebar">
+        <!-- Logo skeleton -->
+        <div class="skeleton-logo-wrap">
+            <div class="skeleton-logo-icon skeleton-shimmer-block"></div>
+            <div class="skeleton-logo-text skeleton-shimmer-block"></div>
+        </div>
+        <!-- Menu list -->
+        <div class="skeleton-menu">
+            <div class="skeleton-menu-item skeleton-shimmer-block"></div>
+            <div class="skeleton-menu-item skeleton-shimmer-block"></div>
+            <div class="skeleton-menu-item skeleton-shimmer-block"></div>
+            <div class="skeleton-menu-item skeleton-shimmer-block"></div>
+            <div class="skeleton-menu-item skeleton-shimmer-block"></div>
+            <div class="skeleton-menu-item skeleton-shimmer-block"></div>
+        </div>
+    </div>
+    <!-- Main content skeleton -->
+    <div class="skeleton-main">
+        <!-- Header skeleton -->
+        <div class="skeleton-header">
+            <div class="skeleton-header-left">
+                <div class="skeleton-menu-toggle skeleton-shimmer-block"></div>
+            </div>
+            <div class="skeleton-header-right">
+                <div class="skeleton-avatar-ring">
+                    <div class="skeleton-avatar skeleton-shimmer-block"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Main content area -->
+        <div class="skeleton-content">
+            <!-- Title / Breadcrumbs -->
+            <div class="skeleton-breadcrumbs skeleton-shimmer-block"></div>
+            <div class="skeleton-title skeleton-shimmer-block"></div>
+
+            <!-- Cards Grid -->
+            <div class="skeleton-cards-grid">
+                <div class="skeleton-card skeleton-shimmer-block"></div>
+                <div class="skeleton-card skeleton-shimmer-block"></div>
+                <div class="skeleton-card skeleton-shimmer-block"></div>
+                <div class="skeleton-card skeleton-shimmer-block"></div>
+            </div>
+
+            <!-- Two Column Layout (like charts or table + chart) -->
+            <div class="skeleton-grid-two">
+                <div class="skeleton-large-block skeleton-shimmer-block"></div>
+                <div class="skeleton-large-block skeleton-shimmer-block"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
