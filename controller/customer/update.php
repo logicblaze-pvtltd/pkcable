@@ -31,9 +31,9 @@ try {
         customer_respond(false, 'Name is required', [], 422);
     }
 
-    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        customer_respond(false, 'Valid email is required', [], 422);
-    }
+    // if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    //     customer_respond(false, 'Valid email is required', [], 422);
+    // }
 
     if (!customer_valid_role($userRole)) {
         customer_respond(false, 'Valid user role is required', [], 422);

@@ -24,9 +24,9 @@ try {
         customer_respond(false, 'Name is required', [], 422);
     }
 
-    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        customer_respond(false, 'Valid email is required', [], 422);
-    }
+    // if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    //     customer_respond(false, 'Valid email is required', [], 422);
+    // }
 
     if ($packageId === '' || $packageId === null) {
         customer_respond(false, 'Valid package is required', [], 422);
@@ -70,7 +70,7 @@ try {
      */
     $plainPassword = null;
 
-    if ($password === '') {
+    if ($password === '' && $email !== '') {
         $plainPassword = bin2hex(random_bytes(4)); // 8-character random password
         $passwordHash = password_hash($plainPassword, PASSWORD_DEFAULT);
     } else {
@@ -81,7 +81,7 @@ try {
     $insertData = [
         'name' => $name,
         'email' => $email,
-        'password' => $passwordHash,
+        'password' => ($email ==='')?'':$passwordHash,
         'user_role' => $userRole,
         'status' => $status,
         'package' => $packageId,

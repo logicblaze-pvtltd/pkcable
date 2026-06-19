@@ -911,41 +911,41 @@ document.addEventListener('DOMContentLoaded', function () {
             return false;
         }
 
-        if (!data.email) {
-            Swal.mixin({
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.onmouseenter = Swal.stopTimer;
-                    toast.onmouseleave = Swal.resumeTimer;
-                }
-            }).fire({
-                icon: "error",
-                title: "Please enter customer email"
-            });
-            return false;
-        }
+        // if (!data.email) {
+        //     Swal.mixin({
+        //         toast: true,
+        //         position: "top-end",
+        //         showConfirmButton: false,
+        //         timer: 3000,
+        //         timerProgressBar: true,
+        //         didOpen: (toast) => {
+        //             toast.onmouseenter = Swal.stopTimer;
+        //             toast.onmouseleave = Swal.resumeTimer;
+        //         }
+        //     }).fire({
+        //         icon: "error",
+        //         title: "Please enter customer email"
+        //     });
+        //     return false;
+        // }
 
-        if (!/^\S+@\S+\.\S+$/.test(data.email)) {
-            Swal.mixin({
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.onmouseenter = Swal.stopTimer;
-                    toast.onmouseleave = Swal.resumeTimer;
-                }
-            }).fire({
-                icon: "error",
-                title: "Please enter a valid email address"
-            });
-            return false;
-        }
+        // if (!/^\S+@\S+\.\S+$/.test(data.email)) {
+        //     Swal.mixin({
+        //         toast: true,
+        //         position: "top-end",
+        //         showConfirmButton: false,
+        //         timer: 3000,
+        //         timerProgressBar: true,
+        //         didOpen: (toast) => {
+        //             toast.onmouseenter = Swal.stopTimer;
+        //             toast.onmouseleave = Swal.resumeTimer;
+        //         }
+        //     }).fire({
+        //         icon: "error",
+        //         title: "Please enter a valid email address"
+        //     });
+        //     return false;
+        // }
 
         if (!data.status) {
             Swal.mixin({
