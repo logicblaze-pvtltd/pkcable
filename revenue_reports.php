@@ -55,7 +55,7 @@ if (isset($_GET['ajax_collector_date'])) {
     }
 
     $collectorsList = [];
-    $sqlAllCollectors = "SELECT id, name, user_role FROM users WHERE user_role != 'customer'";
+    $sqlAllCollectors = "SELECT id, name, user_role FROM users WHERE user_role NOT IN ('customer','super admin')";
     if ($filterByUser) {
         $sqlAllCollectors .= " AND id = " . $filterUserId;
     }
