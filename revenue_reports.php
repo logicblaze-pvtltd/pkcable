@@ -129,6 +129,7 @@ if (isset($_GET['ajax_collector_date'])) {
             $revenue   = $collectionsMap[$colId]['user_revenue'];
         }
         $breakdown[] = [
+            'collector_id'   => $colId,
             'collector_name' => $colData['name'],
             'collector_role' => $colData['role'],
             'subs_count'     => $subsCount,
@@ -179,17 +180,18 @@ if (isset($_GET['ajax_collector_detail'])) {
 
     $sqlDetail = "SELECT 
                       s.id,
-                      c.name AS customer_name,
-                      c.phone AS customer_phone,
+                      u.name AS customer_name,
+                      u.address AS customer_address,
                       s.package_price,
                       COALESCE(NULLIF(s.discount,''),0) AS discount,
                       (s.package_price - COALESCE(NULLIF(s.discount,''),0)) AS net_amount,
-                      s.package_name,
+                      p.name AS package_name,
                       s.status,
                       s.created_at,
-                      s.expiry_date
+                      s.end_date AS expiry_date
                   FROM subscriptions s
-                  LEFT JOIN customers c ON c.id = s.customer_id
+                  LEFT JOIN users u ON u.id = s.user_id
+                  LEFT JOIN packages p ON p.id = s.package_id
                   WHERE s.active_by = ?
                     AND s.status != 'cancelled'
                     AND s.created_at >= ? AND s.created_at <= ?
@@ -206,7 +208,7 @@ if (isset($_GET['ajax_collector_detail'])) {
         $records[] = [
             'sub_id'          => (int)$r['id'],
             'customer_name'   => $r['customer_name'] ?? 'N/A',
-            'customer_phone'  => $r['customer_phone'] ?? '',
+            'customer_address'  => $r['customer_address'] ?? '',
             'package_name'    => $r['package_name'] ?? '',
             'package_price'   => (float)$r['package_price'],
             'discount'        => (float)$r['discount'],
@@ -463,7 +465,7 @@ $monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "O
 // ----------------------------------------------------
 $todayDate = date('Y-m-d');
 $initialCollectorsList = [];
-$sqlAllCollectors = "SELECT id, name, user_role FROM users WHERE user_role != 'customer'";
+$sqlAllCollectors = "SELECT id, name, user_role FROM users WHERE user_role NOT IN ('customer','super admin')";
 if ($filterByUser) {
     $sqlAllCollectors .= " AND id = " . $filterUserId;
 }
@@ -952,7 +954,7 @@ usort($collectors, function ($a, $b) {
                                     <tbody id="collectors-table-body" class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300 transition-opacity duration-200">
                                         <?php if (empty($collectors)): ?>
                                             <tr>
-                                                <td colspan="4" class="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                                <td colspan="5" class="py-8 text-center text-gray-400 dark:text-gray-500 italic">
                                                     No active collectors found.
                                                 </td>
                                             </tr>
@@ -1079,6 +1081,62 @@ usort($collectors, function ($a, $b) {
         </div>
     </div>
 
+    <!-- Collector Detail Modal -->
+    <div id="collectorDetailModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300 opacity-0 invisible pointer-events-none">
+        <div id="collectorDetailPanel" class="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-2xl">
+                <div>
+                    <div id="detailModalTitle" class="text-lg font-bold text-white">Collector Detail</div>
+                    <p id="detailModalSubtitle" class="text-xs text-blue-100 mt-0.5"></p>
+                </div>
+                <button id="closeCollectorDetailModal" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <!-- Summary bar -->
+            <div id="detailModalSummary" class="px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 flex items-center gap-6 text-sm flex-wrap">
+                <!-- filled by JS -->
+            </div>
+            <!-- Loading state -->
+            <div id="detailModalLoading" class="flex-1 flex items-center justify-center py-16">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Loading subscriptions...</span>
+                </div>
+            </div>
+            <!-- Table -->
+            <div id="detailModalContent" class="flex-1 overflow-y-auto hidden">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="sticky top-0 bg-gray-50 dark:bg-gray-900 z-10">
+                        <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                            <th class="py-3 px-4">#</th>
+                            <th class="py-3 px-4">Customer</th>
+                            <th class="py-3 px-4">Address</th>
+                            <th class="py-3 px-4">Package</th>
+                            <th class="py-3 px-4 text-right">Price</th>
+                            <th class="py-3 px-4 text-right">Discount</th>
+                            <th class="py-3 px-4 text-right">Net</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">Time</th>
+                            <th class="py-3 px-4">Expiry</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailModalTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300">
+                    </tbody>
+                </table>
+            </div>
+            <!-- Empty state -->
+            <div id="detailModalEmpty" class="flex-1 flex items-center justify-center py-16 hidden">
+                <p class="text-gray-400 dark:text-gray-500 italic text-sm text-center">No subscriptions found for this collector on this date.</p>
+            </div>
+            <!-- Footer -->
+            <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <button id="closeCollectorDetailModalFooter" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Start Date Picker Modal -->
     <div id="startDateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm transition-all duration-300 opacity-0 invisible pointer-events-none">
         <div id="startDatePanel" class="bg-white dark:bg-gray-800 w-full max-w-sm md:max-w-md rounded-2xl shadow-popover overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
@@ -1175,7 +1233,7 @@ usort($collectors, function ($a, $b) {
                             if (result.data.length === 0) {
                                 tableBody.innerHTML = `
                                     <tr>
-                                        <td colspan="4" class="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                        <td colspan="5" class="py-8 text-center text-gray-400 dark:text-gray-500 italic">
                                             No active collectors found.
                                         </td>
                                     </tr>`;
@@ -1198,7 +1256,10 @@ usort($collectors, function ($a, $b) {
                                     const formattedRevenue = parseFloat(row.user_revenue).toLocaleString();
 
                                     const tr = document.createElement('tr');
-                                    tr.className = 'hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors';
+                                    tr.className = 'collector-row hover:bg-blue-50/40 dark:hover:bg-blue-900/15 transition-colors cursor-pointer group';
+                                    tr.dataset.collectorId = row.collector_id;
+                                    tr.dataset.collectorDate = currentCollectorDate;
+                                    tr.title = 'Click to view subscriptions';
                                     tr.innerHTML = `
                                         <td class="py-3 px-4 font-semibold text-gray-900 dark:text-white">
                                             ${escapeHtml(row.collector_name)}
@@ -1214,9 +1275,18 @@ usort($collectors, function ($a, $b) {
                                         <td class="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">
                                             Rs. ${formattedRevenue}
                                         </td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-800/40 transition-colors">
+                                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                            </span>
+                                        </td>
                                     `;
+                                    tr.addEventListener('click', () => {
+                                        openCollectorDetail(row.collector_id, currentCollectorDate);
+                                    });
                                     tableBody.appendChild(tr);
                                 });
+                                lucide.createIcons();
                             }
                         }
                     })
@@ -1241,6 +1311,90 @@ usort($collectors, function ($a, $b) {
                     return map[m];
                 });
             }
+
+            // ---- Collector Detail Modal ----
+            const detailModal = document.getElementById('collectorDetailModal');
+            const detailPanel = document.getElementById('collectorDetailPanel');
+            const detailTitle = document.getElementById('detailModalTitle');
+            const detailSubtitle = document.getElementById('detailModalSubtitle');
+            const detailSummary = document.getElementById('detailModalSummary');
+            const detailLoading = document.getElementById('detailModalLoading');
+            const detailContent = document.getElementById('detailModalContent');
+            const detailEmpty = document.getElementById('detailModalEmpty');
+            const detailTableBody = document.getElementById('detailModalTableBody');
+
+            function openCollectorDetail(collectorId, dateStr) {
+                if (!collectorId || collectorId === '0') return;
+                detailModal.classList.remove('opacity-0','invisible','pointer-events-none');
+                detailModal.classList.add('opacity-100');
+                detailPanel.classList.remove('scale-95','opacity-0');
+                detailPanel.classList.add('scale-100','opacity-100');
+                detailLoading.classList.remove('hidden');
+                detailContent.classList.add('hidden');
+                detailEmpty.classList.add('hidden');
+                detailTableBody.innerHTML = '';
+                detailSummary.innerHTML = '';
+                detailTitle.textContent = 'Loading...';
+                detailSubtitle.textContent = '';
+                document.body.style.overflow = 'hidden';
+
+                fetch(`revenue_reports.php?ajax_collector_detail=${dateStr}&collector_id=${collectorId}`)
+                    .then(r => r.json())
+                    .then(result => {
+                        detailLoading.classList.add('hidden');
+                        if (!result.success) { detailEmpty.classList.remove('hidden'); return; }
+                        detailTitle.textContent = result.collector_name + ' — Collections';
+                        detailSubtitle.textContent = result.date;
+                        detailSummary.innerHTML = `
+                            <span class="font-semibold text-blue-700 dark:text-blue-300">${result.records.length} subscription${result.records.length !== 1 ? 's' : ''}</span>
+                            <span class="text-gray-400">|</span>
+                            <span class="font-bold text-gray-800 dark:text-gray-200">Total: Rs. ${parseFloat(result.total_net).toLocaleString()}</span>`;
+                        if (result.records.length === 0) { detailEmpty.classList.remove('hidden'); return; }
+                        detailContent.classList.remove('hidden');
+                        result.records.forEach((r, i) => {
+                            const statusClass = r.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                            const tr = document.createElement('tr');
+                            tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors';
+                            tr.innerHTML = `
+                                <td class="py-2.5 px-4 text-gray-400 text-xs">${i+1}</td>
+                                <td class="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">${escapeHtml(r.customer_name)}</td>
+                                <td class="py-2.5 px-4 text-gray-500 text-xs">${escapeHtml(r.customer_address)}</td>
+                                <td class="py-2.5 px-4 text-gray-700 dark:text-gray-300">${escapeHtml(r.package_name)}</td>
+                                <td class="py-2.5 px-4 text-right text-gray-700 dark:text-gray-300">Rs. ${parseFloat(r.package_price).toLocaleString()}</td>
+                                <td class="py-2.5 px-4 text-right text-red-500">${r.discount > 0 ? '-Rs. ' + parseFloat(r.discount).toLocaleString() : '-'}</td>
+                                <td class="py-2.5 px-4 text-right font-bold text-gray-900 dark:text-white">Rs. ${parseFloat(r.net_amount).toLocaleString()}</td>
+                                <td class="py-2.5 px-4"><span class="px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">${r.status}</span></td>
+                                <td class="py-2.5 px-4 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(r.created_at)}</td>
+                                <td class="py-2.5 px-4 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(r.expiry_date)}</td>`;
+                            detailTableBody.appendChild(tr);
+                        });
+                        lucide.createIcons();
+                    })
+                    .catch((err) => { 
+                        console.error("Fetch error:", err);
+                        detailLoading.classList.add('hidden'); 
+                        detailEmpty.classList.remove('hidden'); 
+                    });
+            }
+
+            function closeCollectorDetail() {
+                detailModal.classList.add('opacity-0','invisible','pointer-events-none');
+                detailModal.classList.remove('opacity-100');
+                detailPanel.classList.add('scale-95','opacity-0');
+                detailPanel.classList.remove('scale-100','opacity-100');
+                document.body.style.overflow = '';
+            }
+
+            document.getElementById('closeCollectorDetailModal').addEventListener('click', closeCollectorDetail);
+            document.getElementById('closeCollectorDetailModalFooter').addEventListener('click', closeCollectorDetail);
+            detailModal.addEventListener('click', e => { if (e.target === detailModal) closeCollectorDetail(); });
+
+            // PHP-rendered initial rows click handlers
+            document.querySelectorAll('.collector-row').forEach(tr => {
+                tr.addEventListener('click', () => {
+                    openCollectorDetail(tr.dataset.collectorId, tr.dataset.collectorDate);
+                });
+            });
 
             prevBtn.addEventListener('click', () => {
                 const date = new Date(currentCollectorDate);
