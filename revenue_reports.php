@@ -158,29 +158,35 @@ if (isset($_GET['ajax_collector_detail'])) {
     $ajaxDate      = $_GET['ajax_collector_detail'];
     $ajaxUserId    = isset($_GET['collector_id']) ? (int)$_GET['collector_id'] : 0;
 
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ajaxDate) || $ajaxUserId <= 0) {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ajaxDate) || $ajaxUserId < 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
         exit();
     }
 
     // Security: manager can only see their own detail
     if ($isManager && $ajaxUserId !== $managerId) {
-        echo json_encode(['success' => false, 'message' => 'Access denied']);
-        exit();
+        if ($ajaxUserId !== 0) {
+            echo json_encode(['success' => false, 'message' => 'Access denied']);
+            exit();
+        }
     }
 
     $detailStart = $ajaxDate . ' 00:00:00';
     $detailEnd   = $ajaxDate . ' 23:59:59';
 
-    $collectorNameRes = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
-    $collectorNameRes->bind_param("i", $ajaxUserId);
-    $collectorNameRes->execute();
-    $collectorNameRow = $collectorNameRes->get_result()->fetch_assoc();
-    $collectorName = $collectorNameRow['name'] ?? 'Unknown';
+    $collectorName = 'All Collectors';
+    if ($ajaxUserId > 0) {
+        $collectorNameRes = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+        $collectorNameRes->bind_param("i", $ajaxUserId);
+        $collectorNameRes->execute();
+        $collectorNameRow = $collectorNameRes->get_result()->fetch_assoc();
+        $collectorName = $collectorNameRow['name'] ?? 'Unknown';
+    }
 
     $sqlDetail = "SELECT 
                       s.id,
-                      u.name AS customer_name,
+                      u.id AS customer_id,
+                    u.name AS customer_name,
                       u.address AS customer_address,
                       s.package_price,
                       COALESCE(NULLIF(s.discount,''),0) AS discount,
@@ -188,16 +194,30 @@ if (isset($_GET['ajax_collector_detail'])) {
                       p.name AS package_name,
                       s.status,
                       s.created_at,
-                      s.end_date AS expiry_date
+                      s.end_date AS expiry_date,
+                      col.name AS collector_name
                   FROM subscriptions s
                   LEFT JOIN users u ON u.id = s.user_id
                   LEFT JOIN packages p ON p.id = s.package_id
-                  WHERE s.active_by = ?
-                    AND s.status != 'cancelled'
-                    AND s.created_at >= ? AND s.created_at <= ?
-                  ORDER BY s.created_at ASC";
+                  LEFT JOIN users col ON col.id = s.active_by
+                  WHERE s.status != 'cancelled'
+                    AND s.created_at >= ? AND s.created_at <= ?";
+
+    if ($filterByUser) {
+        $sqlDetail .= " AND s.active_by = ?";
+    } elseif ($ajaxUserId > 0) {
+        $sqlDetail .= " AND s.active_by = ?";
+    }
+    $sqlDetail .= " ORDER BY s.created_at ASC";
+
     $stmtDetail = $conn->prepare($sqlDetail);
-    $stmtDetail->bind_param("iss", $ajaxUserId, $detailStart, $detailEnd);
+    if ($filterByUser) {
+        $stmtDetail->bind_param("ssi", $detailStart, $detailEnd, $filterUserId);
+    } elseif ($ajaxUserId > 0) {
+        $stmtDetail->bind_param("ssi", $detailStart, $detailEnd, $ajaxUserId);
+    } else {
+        $stmtDetail->bind_param("ss", $detailStart, $detailEnd);
+    }
     $stmtDetail->execute();
     $resDetail = $stmtDetail->get_result();
 
@@ -216,12 +236,14 @@ if (isset($_GET['ajax_collector_detail'])) {
             'status'          => $r['status'],
             'created_at'      => date('d-M-Y g:i A', strtotime($r['created_at'])),
             'expiry_date'     => $r['expiry_date'] ? date('d-M-Y', strtotime($r['expiry_date'])) : '-',
+            'collector_name'  => $r['collector_name'] ?? 'System',
         ];
     }
 
     echo json_encode([
         'success'        => true,
         'collector_name' => $collectorName,
+        'collector_id'   => $ajaxUserId,
         'date'           => date('d-M-Y', strtotime($ajaxDate)),
         'total_net'      => $totalNet,
         'records'        => $records
@@ -229,6 +251,302 @@ if (isset($_GET['ajax_collector_detail'])) {
     exit();
 }
 
+// -------------------------------------------------------
+// AJAX: Monthly Drill-down — daily breakdown for a specific month/year
+// -------------------------------------------------------
+if (isset($_GET['ajax_monthly_drilldown'])) {
+    header('Content-Type: application/json');
+    $drillYear  = isset($_GET['drill_year'])  ? (int)$_GET['drill_year']  : 0;
+    $drillMonth = isset($_GET['drill_month']) ? (int)$_GET['drill_month'] : 0;
+
+    if ($drillYear <= 0 || $drillMonth < 1 || $drillMonth > 12) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+        exit();
+    }
+
+    $monthStart = sprintf('%04d-%02d-01', $drillYear, $drillMonth);
+    $monthEnd   = date('Y-m-t', strtotime($monthStart));
+    $startDT    = $monthStart . ' 00:00:00';
+    $endDT      = $monthEnd   . ' 23:59:59';
+
+    // 1. Daily revenue breakdown
+    $sqlDays = "SELECT 
+                    DATE(s.created_at) AS col_date,
+                    COUNT(s.id) AS subs_count,
+                    SUM(s.package_price - COALESCE(NULLIF(s.discount,''),0)) AS revenue
+                FROM subscriptions s
+                WHERE s.status != 'cancelled'
+                  AND s.created_at >= ? AND s.created_at <= ?";
+    if ($filterByUser) {
+        $sqlDays .= " AND s.active_by = ?";
+    }
+    $sqlDays .= " GROUP BY DATE(s.created_at) ORDER BY col_date ASC";
+
+    $stmtDays = $conn->prepare($sqlDays);
+    if ($filterByUser) {
+        $stmtDays->bind_param("ssi", $startDT, $endDT, $filterUserId);
+    } else {
+        $stmtDays->bind_param("ss", $startDT, $endDT);
+    }
+    $stmtDays->execute();
+    $resDays = $stmtDays->get_result();
+
+    $dailyMap = [];
+    while ($row = $resDays->fetch_assoc()) {
+        $dailyMap[$row['col_date']] = [
+            'revenue' => (float)$row['revenue'],
+            'count'   => (int)$row['subs_count']
+        ];
+    }
+
+    // Generate full day range
+    $dayDates    = [];
+    $dayRawDates = [];
+    $dayRevenues = [];
+    $dayCounts   = [];
+    $cur = $monthStart;
+    while (strtotime($cur) <= strtotime($monthEnd)) {
+        $fmt = date('Y-m-d', strtotime($cur));
+        $dayDates[]    = date('d M', strtotime($cur));
+        $dayRawDates[] = $fmt;
+        $dayRevenues[] = isset($dailyMap[$fmt]) ? $dailyMap[$fmt]['revenue'] : 0;
+        $dayCounts[]   = isset($dailyMap[$fmt]) ? $dailyMap[$fmt]['count']   : 0;
+        $cur = date('Y-m-d', strtotime($cur . ' +1 day'));
+    }
+
+    // 2. Collector breakdown for that month
+    $sqlCols = "SELECT 
+                    u.id AS collector_id,
+                    u.name AS collector_name,
+                    u.user_role AS collector_role,
+                    COUNT(s.id) AS subs_count,
+                    SUM(s.package_price - COALESCE(NULLIF(s.discount,''),0)) AS revenue
+                FROM subscriptions s
+                LEFT JOIN users u ON u.id = s.active_by
+                WHERE s.status != 'cancelled'
+                  AND s.created_at >= ? AND s.created_at <= ?";
+    if ($filterByUser) {
+        $sqlCols .= " AND s.active_by = ?";
+    }
+    $sqlCols .= " GROUP BY s.active_by ORDER BY revenue DESC";
+
+    $stmtCols = $conn->prepare($sqlCols);
+    if ($filterByUser) {
+        $stmtCols->bind_param("ssi", $startDT, $endDT, $filterUserId);
+    } else {
+        $stmtCols->bind_param("ss", $startDT, $endDT);
+    }
+    $stmtCols->execute();
+    $resCols = $stmtCols->get_result();
+
+    $collectors = [];
+    $totalRevenue = 0.0;
+    $totalSubs    = 0;
+    while ($row = $resCols->fetch_assoc()) {
+        $totalRevenue += (float)$row['revenue'];
+        $totalSubs    += (int)$row['subs_count'];
+        $collectors[] = [
+            'collector_id'   => (int)$row['collector_id'],
+            'collector_name' => $row['collector_name'] ?? 'Unknown',
+            'collector_role' => $row['collector_role'] ?? 'manager',
+            'subs_count'     => (int)$row['subs_count'],
+            'revenue'        => (float)$row['revenue']
+        ];
+    }
+
+    // Month names for display
+    $mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    $monthLabel = $mNames[$drillMonth - 1] . ' ' . $drillYear;
+
+    echo json_encode([
+        'success'       => true,
+        'month_label'   => $monthLabel,
+        'year'          => $drillYear,
+        'month'         => $drillMonth,
+        'total_revenue' => $totalRevenue,
+        'total_subs'    => $totalSubs,
+        'day_dates'     => $dayDates,
+        'day_raw_dates' => $dayRawDates,
+        'day_revenues'  => $dayRevenues,
+        'day_counts'    => $dayCounts,
+        'collectors'    => $collectors
+    ]);
+    exit();
+}
+
+// -------------------------------------------------------
+// AJAX: Daily Drill-down — collector breakdown for a specific date (with raw dates for chart click)
+// -------------------------------------------------------
+if (isset($_GET['ajax_daily_drilldown'])) {
+    header('Content-Type: application/json');
+    $drillDate = $_GET['ajax_daily_drilldown'];
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $drillDate)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid date format']);
+        exit();
+    }
+
+    $startDT = $drillDate . ' 00:00:00';
+    $endDT   = $drillDate . ' 23:59:59';
+
+    $sqlCols = "SELECT 
+                    u.id AS collector_id,
+                    u.name AS collector_name,
+                    u.user_role AS collector_role,
+                    COUNT(s.id) AS subs_count,
+                    SUM(s.package_price - COALESCE(NULLIF(s.discount,''),0)) AS revenue
+                FROM subscriptions s
+                LEFT JOIN users u ON u.id = s.active_by
+                WHERE s.status != 'cancelled'
+                  AND s.created_at >= ? AND s.created_at <= ?";
+    if ($filterByUser) {
+        $sqlCols .= " AND s.active_by = ?";
+    }
+    $sqlCols .= " GROUP BY s.active_by ORDER BY revenue DESC";
+
+    $stmtCols = $conn->prepare($sqlCols);
+    if ($filterByUser) {
+        $stmtCols->bind_param("ssi", $startDT, $endDT, $filterUserId);
+    } else {
+        $stmtCols->bind_param("ss", $startDT, $endDT);
+    }
+    $stmtCols->execute();
+    $resCols = $stmtCols->get_result();
+
+    $collectors  = [];
+    $totalRev    = 0.0;
+    $totalSubsCt = 0;
+    while ($row = $resCols->fetch_assoc()) {
+        $totalRev    += (float)$row['revenue'];
+        $totalSubsCt += (int)$row['subs_count'];
+        $collectors[] = [
+            'collector_id'   => (int)$row['collector_id'],
+            'collector_name' => $row['collector_name'] ?? 'Unknown',
+            'collector_role' => $row['collector_role'] ?? 'manager',
+            'subs_count'     => (int)$row['subs_count'],
+            'revenue'        => (float)$row['revenue']
+        ];
+    }
+
+    echo json_encode([
+        'success'       => true,
+        'date_label'    => date('d-M-Y', strtotime($drillDate)),
+        'raw_date'      => $drillDate,
+        'total_revenue' => $totalRev,
+        'total_subs'    => $totalSubsCt,
+        'collectors'    => $collectors
+    ]);
+    exit();
+}
+
+// -------------------------------------------------------
+// AJAX: Day Detail � customer/subscription breakdown for a specific day
+// -------------------------------------------------------
+if (isset($_GET['ajax_day_detail'])) {
+    header('Content-Type: application/json');
+    $dayDate      = $_GET['ajax_day_detail'];
+    $collectorId  = isset($_GET['collector_id']) ? (int)$_GET['collector_id'] : 0;
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dayDate)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid date format']);
+        exit();
+    }
+
+    if ($collectorId < 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid collector']);
+        exit();
+    }
+
+    if ($isManager && $collectorId > 0 && $collectorId !== $managerId) {
+        echo json_encode(['success' => false, 'message' => 'Access denied']);
+        exit();
+    }
+
+    $dayStart = $dayDate . ' 00:00:00';
+    $dayEnd   = $dayDate . ' 23:59:59';
+
+    $sqlDay = "SELECT 
+                    s.id,
+                    u.id AS customer_id,
+                    u.name AS customer_name,
+                    u.address AS customer_address,
+                    s.package_price,
+                    COALESCE(NULLIF(s.discount,''),0) AS discount,
+                    (s.package_price - COALESCE(NULLIF(s.discount,''),0)) AS net_amount,
+                    p.name AS package_name,
+                    s.status,
+                    s.created_at,
+                    s.start_date,
+                    s.end_date,
+                    col.id AS collector_id,
+                    col.name AS collector_name,
+                    col.user_role AS collector_role
+                FROM subscriptions s
+                LEFT JOIN users u ON u.id = s.user_id
+                LEFT JOIN packages p ON p.id = s.package_id
+                LEFT JOIN users col ON col.id = s.active_by
+                WHERE s.status != 'cancelled'
+                  AND s.created_at >= ? AND s.created_at <= ?";
+    if ($filterByUser) {
+        $sqlDay .= " AND s.active_by = ?";
+    } elseif ($collectorId > 0) {
+        $sqlDay .= " AND s.active_by = ?";
+    }
+    $sqlDay .= " ORDER BY s.created_at ASC, s.id ASC";
+
+    $stmtDay = $conn->prepare($sqlDay);
+    if ($filterByUser) {
+        $stmtDay->bind_param("ssi", $dayStart, $dayEnd, $filterUserId);
+    } elseif ($collectorId > 0) {
+        $stmtDay->bind_param("ssi", $dayStart, $dayEnd, $collectorId);
+    } else {
+        $stmtDay->bind_param("ss", $dayStart, $dayEnd);
+    }
+    $stmtDay->execute();
+    $resDay = $stmtDay->get_result();
+
+    $records = [];
+    $totalRevenue = 0.0;
+    while ($row = $resDay->fetch_assoc()) {
+        $totalRevenue += (float)$row['net_amount'];
+        $records[] = [
+            'sub_id'           => (int)$row['id'],
+            'customer_name'    => $row['customer_name'] ?? 'N/A',
+            'customer_address'  => $row['customer_address'] ?? '',
+            'package_name'     => $row['package_name'] ?? '',
+            'package_price'    => (float)$row['package_price'],
+            'discount'         => (float)$row['discount'],
+            'net_amount'       => (float)$row['net_amount'],
+            'status'           => $row['status'],
+            'collector_id'     => (int)($row['collector_id'] ?? 0),
+            'collector_name'   => $row['collector_name'] ?? 'System',
+            'collector_role'   => $row['collector_role'] ?? 'system',
+            'created_at'       => date('d-M-Y g:i A', strtotime($row['created_at'])),
+            'start_date'       => $row['start_date'] ? date('d-M-Y', strtotime($row['start_date'])) : '-',
+            'expiry_date'      => $row['end_date'] ? date('d-M-Y', strtotime($row['end_date'])) : '-',
+        ];
+    }
+
+    $collectorLabel = $collectorId > 0 ? 'Collector #' . $collectorId : 'All collectors';
+    if ($collectorId > 0) {
+        $collectorNameRes = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+        $collectorNameRes->bind_param("i", $collectorId);
+        $collectorNameRes->execute();
+        $collectorNameRow = $collectorNameRes->get_result()->fetch_assoc();
+        $collectorLabel = $collectorNameRow['name'] ?? $collectorLabel;
+    }
+
+    echo json_encode([
+        'success'        => true,
+        'date_label'     => date('d-M-Y', strtotime($dayDate)),
+        'raw_date'       => $dayDate,
+        'collector_id'   => $collectorId,
+        'collector_name' => $collectorLabel,
+        'total_revenue'  => $totalRevenue,
+        'total_subs'     => count($records),
+        'records'        => $records
+    ]);
+    exit();
+}
 // Get available years for filtering
 $yearsQuery = $conn->query("
     SELECT DISTINCT YEAR(created_at) AS yr 
@@ -886,30 +1204,36 @@ usort($collectors, function ($a, $b) {
                     <!-- Charts Grid -->
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-4">
                         <!-- Chart 1: Monthly Comparison -->
-                        <div class="xl:col-span-5 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-3 border border-gray-100 dark:border-gray-700/50 min-w-0">
-                            <div class="flex justify-between items-center mb-4">
+                        <div class="xl:col-span-5 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-3 border border-gray-100 dark:border-gray-700/50 min-w-0 relative group/chart">
+                            <div class="flex justify-between items-center mb-2 px-3 pt-1">
                                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                     <i data-lucide="columns-2" class="w-5 h-5 text-indigo-500"></i>
                                     <span>Monthly Comparison</span>
                                 </h3>
-                                <div class="text-xs text-gray-400 dark:text-gray-500 font-medium">
-                                    Year <?= $selectedYear ?> vs <?= $selectedYear - 1 ?>
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/40">
+                                        <i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Click bar for details
+                                    </span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 font-medium"><?= $selectedYear ?> vs <?= $selectedYear - 1 ?></span>
                                 </div>
                             </div>
-                            <div id="monthly-comparison-chart" class="w-full"></div>
+                            <div id="monthly-comparison-chart" class="w-full cursor-pointer"></div>
                         </div>
                         <!-- Chart 2: Daily Area Trend -->
-                        <div class="xl:col-span-7 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-100 dark:border-gray-700/50 min-w-0">
+                        <div class="xl:col-span-7 bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-100 dark:border-gray-700/50 min-w-0 relative group/chart">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                     <i data-lucide="activity" class="w-5 h-5 text-blue-500"></i>
                                     <span>Daily Collection Trend</span>
                                 </h3>
-                                <div class="text-xs text-gray-400 dark:text-gray-500 font-medium">
-                                    <?= $displayStartDate ?> to <?= $displayEndDate ?>
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/40">
+                                        <i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Click point for details
+                                    </span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 font-medium"><?= $displayStartDate ?> to <?= $displayEndDate ?></span>
                                 </div>
                             </div>
-                            <div id="daily-trend-chart" class="w-full"></div>
+                            <div id="daily-trend-chart" class="w-full cursor-pointer"></div>
                         </div>
                     </div>
 
@@ -1137,6 +1461,264 @@ usort($collectors, function ($a, $b) {
         </div>
     </div>
 
+
+    <!-- ============================================================ -->
+    <!-- MONTHLY DRILL-DOWN MODAL -->
+    <!-- ============================================================ -->
+    <div id="monthlyDrillModal" class="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0 invisible pointer-events-none">
+        <div id="monthlyDrillPanel" class="bg-white dark:bg-gray-900 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[92vh]">
+            <!-- Gradient Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 rounded-t-3xl flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <div id="monthlyDrillTitle" class="text-lg font-bold text-white">Monthly Detail</div>
+                        <p id="monthlyDrillSubtitle" class="text-xs text-indigo-200 mt-0.5">Daily breakdown & collector performance</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Stats chips -->
+                    <div id="monthlyDrillStats" class="hidden sm:flex items-center gap-2 text-xs text-white/90">
+                        <!-- filled by JS -->
+                    </div>
+                    <button id="closeMonthlyDrill" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading state -->
+            <div id="monthlyDrillLoading" class="flex-1 flex items-center justify-center py-20">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="relative w-12 h-12">
+                        <div class="absolute inset-0 border-4 border-indigo-100 dark:border-indigo-900 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-t-indigo-600 rounded-full animate-spin"></div>
+                    </div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">Loading monthly details...</span>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div id="monthlyDrillContent" class="hidden overflow-hidden" style="flex:1;flex-direction:column;">
+                <!-- Sub-chart: Daily trend of that month -->
+                <div class="px-6 pt-4 pb-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-indigo-500"></i>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Daily Revenue in this Month</h4>
+                    </div>
+                    <div id="monthlyDrillDailyChart" class="w-full"></div>
+                </div>
+                <!-- Divider -->
+                <div class="mx-6 border-t border-gray-100 dark:border-gray-700/60 my-1 flex-shrink-0"></div>
+                <!-- Collector Table -->
+                <div class="px-6 pb-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="users" class="w-4 h-4 text-purple-500"></i>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Collector Performance</h4>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto px-6 pb-4">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                            <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                                <th class="py-2.5 px-3">#</th>
+                                <th class="py-2.5 px-3">Collector</th>
+                                <th class="py-2.5 px-3">Role</th>
+                                <th class="py-2.5 px-3 text-center">Subs</th>
+                                <th class="py-2.5 px-3 text-right">Revenue</th>
+                                <th class="py-2.5 px-3 text-right">Share %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyDrillTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="monthlyDrillEmpty" class="hidden flex-1 flex items-center justify-center py-20">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <i data-lucide="inbox" class="w-8 h-8 text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-400 dark:text-gray-500 text-sm">No data found for this month.</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/50">
+                <p class="text-xs text-gray-400 dark:text-gray-500">Click a collector row to view their subscriptions</p>
+                <button id="closeMonthlyDrillFooter" class="px-5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50 text-indigo-700 dark:text-indigo-300 rounded-xl text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DAILY DRILL-DOWN MODAL (chart click → collector breakdown) -->
+    <!-- ============================================================ -->
+    <div id="dailyDrillModal" class="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0 invisible pointer-events-none">
+        <div id="dailyDrillPanel" class="bg-white dark:bg-gray-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[88vh]">
+            <!-- Gradient Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 rounded-t-3xl flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                        <i data-lucide="calendar-days" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <div id="dailyDrillTitle" class="text-lg font-bold text-white">Daily Breakdown</div>
+                        <p id="dailyDrillSubtitle" class="text-xs text-blue-200 mt-0.5">Collector-wise collection for this day</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="dailyDrillStats" class="hidden sm:flex items-center gap-2 text-xs text-white/90"></div>
+                    <button id="closeDailyDrill" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading state -->
+            <div id="dailyDrillLoading" class="flex-1 flex items-center justify-center py-16">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="relative w-12 h-12">
+                        <div class="absolute inset-0 border-4 border-blue-100 dark:border-blue-900 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">Loading daily details...</span>
+                </div>
+            </div>
+
+            <!-- Donut chart + table -->
+            <div id="dailyDrillContent" class="hidden overflow-hidden" style="flex:1;flex-direction:column;">
+                <!-- Mini donut chart for collector share -->
+                <div class="px-6 pt-4 pb-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-blue-500"></i>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Collection Share by Collector</h4>
+                    </div>
+                    <div id="dailyDrillDonutChart" class="w-full" style="max-height:220px;"></div>
+                </div>
+                <div class="mx-6 border-t border-gray-100 dark:border-gray-700/60 my-1 flex-shrink-0"></div>
+                <div class="px-6 pb-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="list" class="w-4 h-4 text-cyan-500"></i>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Collector Breakdown</h4>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto px-6 pb-4">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                            <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                                <th class="py-2.5 px-3">#</th>
+                                <th class="py-2.5 px-3">Collector</th>
+                                <th class="py-2.5 px-3">Role</th>
+                                <th class="py-2.5 px-3 text-center">Subs</th>
+                                <th class="py-2.5 px-3 text-right">Revenue</th>
+                                <th class="py-2.5 px-3 text-right">Share %</th>
+                                <th class="py-2.5 px-3 text-center">View</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailyDrillTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty -->
+            <div id="dailyDrillEmpty" class="hidden flex-1 flex items-center justify-center py-16">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <i data-lucide="inbox" class="w-8 h-8 text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-400 dark:text-gray-500 text-sm">No collections on this day.</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/50">
+                <p class="text-xs text-gray-400 dark:text-gray-500">Click "View" to see individual subscriptions</p>
+                <button id="closeDailyDrillFooter" class="px-5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-xl text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DAY DETAIL MODAL (day click ? customer/subscription breakdown) -->
+    <!-- ============================================================ -->
+    <div id="dayDetailModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0 invisible pointer-events-none">
+        <div id="dayDetailPanel" class="bg-white dark:bg-gray-900 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[92vh]">
+            <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-t-3xl flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                        <i data-lucide="receipt-text" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <div id="dayDetailTitle" class="text-lg font-bold text-white">Day Detail</div>
+                        <p id="dayDetailSubtitle" class="text-xs text-emerald-200 mt-0.5">Customer subscriptions for this day</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="dayDetailStats" class="hidden sm:flex items-center gap-2 text-xs text-white/90"></div>
+                    <button id="closeDayDetail" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="dayDetailLoading" class="flex-1 flex items-center justify-center py-20">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="relative w-12 h-12">
+                        <div class="absolute inset-0 border-4 border-emerald-100 dark:border-emerald-900 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-t-emerald-600 rounded-full animate-spin"></div>
+                    </div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">Loading day detail...</span>
+                </div>
+            </div>
+
+            <div id="dayDetailContent" class="hidden overflow-hidden" style="flex:1;flex-direction:column;">
+                <div class="px-6 pt-4 pb-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="users-round" class="w-4 h-4 text-emerald-500"></i>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Customer Payments</h4>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto px-6 pb-4">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                            <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                                <th class="py-2.5 px-3">#</th>
+                                <th class="py-2.5 px-3">Customer</th>
+                                <th class="py-2.5 px-3">Package</th>
+                                <th class="py-2.5 px-3">Collector</th>
+                                <th class="py-2.5 px-3 text-right">Price</th>
+                                <th class="py-2.5 px-3 text-right">Discount</th>
+                                <th class="py-2.5 px-3 text-right">Net</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dayDetailTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="dayDetailEmpty" class="hidden flex-1 flex items-center justify-center py-16">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <i data-lucide="inbox" class="w-8 h-8 text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-400 dark:text-gray-500 text-sm">No subscriptions found for this day.</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/50">
+                <p class="text-xs text-gray-400 dark:text-gray-500">Click a customer row to open that customer's history</p>
+                <button id="closeDayDetailFooter" class="px-5 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
     <!-- Start Date Picker Modal -->
     <div id="startDateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm transition-all duration-300 opacity-0 invisible pointer-events-none">
         <div id="startDatePanel" class="bg-white dark:bg-gray-800 w-full max-w-sm md:max-w-md rounded-2xl shadow-popover overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
@@ -1385,9 +1967,15 @@ usort($collectors, function ($a, $b) {
                 document.body.style.overflow = '';
             }
 
+            // Expose globally so drill-down buttons (onclick) can call them
+            window.openCollectorDetail = openCollectorDetail;
+            window.closeCollectorDetail = closeCollectorDetail;
+
+
             document.getElementById('closeCollectorDetailModal').addEventListener('click', closeCollectorDetail);
             document.getElementById('closeCollectorDetailModalFooter').addEventListener('click', closeCollectorDetail);
             detailModal.addEventListener('click', e => { if (e.target === detailModal) closeCollectorDetail(); });
+
 
             // PHP-rendered initial rows click handlers
             document.querySelectorAll('.collector-row').forEach(tr => {
@@ -1419,6 +2007,32 @@ usort($collectors, function ($a, $b) {
             const dailyRevenues = <?= json_encode($dailyRevenues) ?>;
             const dailyCounts = <?= json_encode($dailyCounts) ?>;
 
+            // ---- Drill-down raw date mapping ----
+            // Build a full date→rawDate map keyed by display label (e.g. '01 Jun' → '2026-06-01')
+            // Build a full date→rawDate map keyed by display label
+            const dailyLabelToRaw = {};
+            (() => {
+                let cur = '<?= $startDate ?>';
+                const end = '<?= $endDate ?>';
+                const labels = <?= json_encode($dailyDates) ?>;
+                let i = 0;
+                while (cur <= end && i < labels.length) {
+                    dailyLabelToRaw[labels[i]] = cur;
+                    // increment
+                    const d = new Date(cur);
+                    d.setDate(d.getDate() + 1);
+                    cur = d.toISOString().slice(0,10);
+                    i++;
+                }
+            })();
+
+            function openDailyTrendPoint(dataPointIndex) {
+                if (typeof dataPointIndex !== 'number' || dataPointIndex < 0) return;
+                const label = dailyCategories[dataPointIndex];
+                const rawDate = dailyLabelToRaw[label];
+                if (rawDate) openDailyDrill(rawDate, label);
+            }
+
             // Daily Area Chart Options
             const dailyOptions = {
                 chart: {
@@ -1432,7 +2046,18 @@ usort($collectors, function ($a, $b) {
                     zoom: {
                         enabled: false
                     },
-                    background: 'transparent'
+                    background: 'transparent',
+                    events: {
+                        click: function(event, chartContext, config) {
+                            openDailyTrendPoint(config.dataPointIndex);
+                        },
+                        dataPointSelection: function(event, chartContext, config) {
+                            openDailyTrendPoint(config.dataPointIndex);
+                        },
+                        dataPointMouseEnter: function(event) {
+                            event.target.style.cursor = 'pointer';
+                        }
+                    }
                 },
                 theme: {
                     mode: themeMode
@@ -1455,10 +2080,10 @@ usort($collectors, function ($a, $b) {
                     enabled: false
                 },
                 markers: {
-                    size: 4,
+                    size: 6,
                     strokeWidth: 2,
                     hover: {
-                        size: 6
+                        size: 8
                     }
                 },
                 grid: {
@@ -1528,7 +2153,19 @@ usort($collectors, function ($a, $b) {
                         show: false
                     },
                     fontFamily: "'IBM Plex Sans', sans-serif",
-                    background: 'transparent'
+                    background: 'transparent',
+                    events: {
+                        dataPointSelection: function(event, chartContext, config) {
+                            const monthIdx = config.dataPointIndex; // 0-11
+                            const seriesIdx = config.seriesIndex;   // 0 = currYear, 1 = prevYear
+                            const clickedYear = seriesIdx === 0 ? <?= $selectedYear ?> : <?= $selectedYear - 1 ?>;
+                            const clickedMonth = monthIdx + 1; // 1-12
+                            openMonthlyDrill(clickedYear, clickedMonth);
+                        },
+                        dataPointMouseEnter: function(event) {
+                            event.target.style.cursor = 'pointer';
+                        }
+                    }
                 },
                 theme: {
                     mode: themeMode
@@ -1606,6 +2243,451 @@ usort($collectors, function ($a, $b) {
             const monthlyChart = new ApexCharts(document.querySelector("#monthly-comparison-chart"), monthlyOptions);
             monthlyChart.render();
 
+
+            // ================================================================
+            // MONTHLY DRILL-DOWN LOGIC
+            // ================================================================
+            let monthlyDrillChartInstance = null;
+
+            function getRoleStyle(role) {
+                const map = {
+                    'super admin': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+                    'admin':       'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                    'manager':     'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+                    'system':      'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                };
+                return map[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+            }
+
+            function getRoleLabel(role) {
+                const map = {'super admin':'Super Admin','admin':'Admin','manager':'Manager','system':'System'};
+                return map[role] || (role ? role.charAt(0).toUpperCase()+role.slice(1) : 'Unknown');
+            }
+
+            function openMonthlyDrill(year, month) {
+                const modal  = document.getElementById('monthlyDrillModal');
+                const panel  = document.getElementById('monthlyDrillPanel');
+                const title  = document.getElementById('monthlyDrillTitle');
+                const stats  = document.getElementById('monthlyDrillStats');
+                const load   = document.getElementById('monthlyDrillLoading');
+                const cont   = document.getElementById('monthlyDrillContent');
+                const empty  = document.getElementById('monthlyDrillEmpty');
+                const tbody  = document.getElementById('monthlyDrillTableBody');
+
+                // Show modal
+                modal.classList.remove('opacity-0','invisible','pointer-events-none');
+                modal.classList.add('opacity-100');
+                panel.classList.remove('scale-95','opacity-0');
+                panel.classList.add('scale-100','opacity-100');
+                load.classList.remove('hidden');
+                cont.classList.add('hidden');
+                empty.classList.add('hidden');
+                stats.innerHTML = '';
+                title.textContent = 'Loading...';
+                document.body.style.overflow = 'hidden';
+
+                // Destroy previous sub-chart
+                if (monthlyDrillChartInstance) {
+                    monthlyDrillChartInstance.destroy();
+                    monthlyDrillChartInstance = null;
+                }
+                document.getElementById('monthlyDrillDailyChart').innerHTML = '';
+
+                const filterParam = <?= $filterByUser ? '`&filter_manager=' . $filterUserId . '`' : '""' ?>;
+                fetch(`revenue_reports.php?ajax_monthly_drilldown=1&drill_year=${year}&drill_month=${month}${filterParam}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        load.classList.add('hidden');
+                        if (!data.success || data.total_revenue === 0 && data.total_subs === 0) {
+                            empty.classList.remove('hidden');
+                            title.textContent = 'No data';
+                            return;
+                        }
+
+                        title.textContent = `${data.month_label} — Monthly Detail`;
+                        stats.innerHTML = `
+                            <span class="bg-white/20 px-3 py-1 rounded-full font-semibold">
+                                Rs. ${parseFloat(data.total_revenue).toLocaleString()}
+                            </span>
+                            <span class="bg-white/15 px-3 py-1 rounded-full">
+                                ${data.total_subs} subs
+                            </span>`;
+
+                        cont.classList.remove('hidden');
+
+                        // Render daily area sub-chart
+                        const isDk = document.documentElement.classList.contains('dark');
+                        const subTheme = isDk ? 'dark' : 'light';
+                        const subGrid  = isDk ? '#334155' : '#e2e8f0';
+                        const subLabel = isDk ? '#94a3b8' : '#64748b';
+
+                        monthlyDrillChartInstance = new ApexCharts(
+                            document.getElementById('monthlyDrillDailyChart'),
+                            {
+                                chart: {
+                                    type: 'area', height: 190,
+                                    toolbar: { show: false },
+                                    fontFamily: "'IBM Plex Sans', sans-serif",
+                                    background: 'transparent',
+                                    events: {
+                                        dataPointSelection: function(event, chartContext, config) {
+                                            const idx = config.dataPointIndex;
+                                            const rawDate = data.day_raw_dates[idx];
+                                            const label = data.day_dates[idx];
+                                            if (rawDate) { closeMonthlyDrill(); openDayDetail(rawDate, label); }
+                                        },
+                                        dataPointMouseEnter: function(event) {
+                                            event.target.style.cursor = 'pointer';
+                                        }
+                                    },
+                                    animations: { enabled: true, speed: 600 }
+                                },
+                                theme: { mode: subTheme },
+                                colors: ['#6366f1'],
+                                stroke: { curve: 'smooth', width: 2.5 },
+                                fill: {
+                                    type: 'gradient',
+                                    gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.02, stops: [0,90,100] }
+                                },
+                                dataLabels: { enabled: false },
+                                markers: { size: 3, strokeWidth: 2, hover: { size: 5 } },
+                                grid: { borderColor: subGrid, strokeDashArray: 4 },
+                                series: [{ name: 'Daily Revenue', data: data.day_revenues }],
+                                xaxis: {
+                                    categories: data.day_dates,
+                                    labels: { style: { colors: subLabel, fontSize: '10px' }, rotate: -45 },
+                                    axisBorder: { show: false }, axisTicks: { show: false }
+                                },
+                                yaxis: {
+                                    labels: {
+                                        style: { colors: subLabel, fontSize: '10px' },
+                                        formatter: v => 'Rs.' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v)
+                                    }
+                                },
+                                tooltip: {
+                                    y: { formatter: (v, {dataPointIndex}) => `Rs. ${v.toLocaleString()} (${data.day_counts[dataPointIndex]} subs)` }
+                                }
+                            }
+                        );
+                        monthlyDrillChartInstance.render();
+
+                        // Build collector table
+                        tbody.innerHTML = '';
+                        data.collectors.forEach((col, i) => {
+                            const shareVal = data.total_revenue > 0
+                                ? ((col.revenue / data.total_revenue) * 100).toFixed(1)
+                                : '0.0';
+                            const roleClass = getRoleStyle(col.collector_role);
+                            const roleLbl   = getRoleLabel(col.collector_role);
+                            const barWidth  = Math.round((col.revenue / Math.max(...data.collectors.map(c=>c.revenue))) * 100);
+                            const tr = document.createElement('tr');
+                            tr.className = 'hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors';
+                            tr.innerHTML = `
+                                <td class="py-2.5 px-3 text-gray-400 text-xs">${i+1}</td>
+                                <td class="py-2.5 px-3">
+                                    <div class="font-semibold text-gray-900 dark:text-white">${escapeHtml(col.collector_name)}</div>
+                                    <div class="mt-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 w-full max-w-[120px]">
+                                        <div class="h-1.5 rounded-full bg-indigo-500" style="width:${barWidth}%"></div>
+                                    </div>
+                                </td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 text-xs rounded-full font-medium ${roleClass}">${roleLbl}</span></td>
+                                <td class="py-2.5 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400">${col.subs_count}</td>
+                                <td class="py-2.5 px-3 text-right font-bold text-gray-900 dark:text-white">Rs. ${parseFloat(col.revenue).toLocaleString()}</td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <span class="text-xs font-semibold text-purple-600 dark:text-purple-400">${shareVal}%</span>
+                                </td>`;
+                            tbody.appendChild(tr);
+                        });
+                        lucide.createIcons();
+                    })
+                    .catch(() => { load.classList.add('hidden'); empty.classList.remove('hidden'); });
+            }
+
+            function closeMonthlyDrill() {
+                const modal = document.getElementById('monthlyDrillModal');
+                const panel = document.getElementById('monthlyDrillPanel');
+                modal.classList.add('opacity-0','invisible','pointer-events-none');
+                modal.classList.remove('opacity-100');
+                panel.classList.add('scale-95','opacity-0');
+                panel.classList.remove('scale-100','opacity-100');
+                document.body.style.overflow = '';
+                if (monthlyDrillChartInstance) {
+                    monthlyDrillChartInstance.destroy();
+                    monthlyDrillChartInstance = null;
+                }
+            }
+
+            document.getElementById('closeMonthlyDrill').addEventListener('click', closeMonthlyDrill);
+            document.getElementById('closeMonthlyDrillFooter').addEventListener('click', closeMonthlyDrill);
+            document.getElementById('monthlyDrillModal').addEventListener('click', e => { if (e.target === document.getElementById('monthlyDrillModal')) closeMonthlyDrill(); });
+
+            // ================================================================
+            // DAILY DRILL-DOWN LOGIC
+            // ================================================================
+            let dailyDrillDonutInstance = null;
+
+            function openDailyDrill(rawDate, displayLabel) {
+                const modal  = document.getElementById('dailyDrillModal');
+                const panel  = document.getElementById('dailyDrillPanel');
+                const title  = document.getElementById('dailyDrillTitle');
+                const subtitle = document.getElementById('dailyDrillSubtitle');
+                const stats  = document.getElementById('dailyDrillStats');
+                const load   = document.getElementById('dailyDrillLoading');
+                const cont   = document.getElementById('dailyDrillContent');
+                const empty  = document.getElementById('dailyDrillEmpty');
+                const tbody  = document.getElementById('dailyDrillTableBody');
+
+                modal.classList.remove('opacity-0','invisible','pointer-events-none');
+                modal.classList.add('opacity-100');
+                panel.classList.remove('scale-95','opacity-0');
+                panel.classList.add('scale-100','opacity-100');
+                load.classList.remove('hidden');
+                cont.classList.add('hidden');
+                empty.classList.add('hidden');
+                stats.innerHTML = '';
+                title.textContent = 'Loading...';
+                subtitle.textContent = displayLabel;
+                document.body.style.overflow = 'hidden';
+
+                if (dailyDrillDonutInstance) {
+                    dailyDrillDonutInstance.destroy();
+                    dailyDrillDonutInstance = null;
+                }
+                document.getElementById('dailyDrillDonutChart').innerHTML = '';
+
+                const filterParam = <?= $filterByUser ? '`&filter_manager=' . $filterUserId . '`' : '""' ?>;
+                fetch(`revenue_reports.php?ajax_daily_drilldown=${rawDate}${filterParam}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        load.classList.add('hidden');
+                        if (!data.success || data.collectors.length === 0) {
+                            empty.classList.remove('hidden');
+                            title.textContent = data.date_label || displayLabel;
+                            return;
+                        }
+
+                        title.textContent = data.date_label + ' — Collection Detail';
+                        stats.innerHTML = `
+                            <span class="bg-white/20 px-3 py-1 rounded-full font-semibold">
+                                Rs. ${parseFloat(data.total_revenue).toLocaleString()}
+                            </span>
+                            <span class="bg-white/15 px-3 py-1 rounded-full">
+                                ${data.total_subs} subs
+                            </span>`;
+
+                        cont.classList.remove('hidden');
+
+                        // Donut chart
+                        const isDk = document.documentElement.classList.contains('dark');
+                        const donutTheme = isDk ? 'dark' : 'light';
+                        const donutLabel = isDk ? '#94a3b8' : '#64748b';
+                        const donutColors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#a78bfa','#34d399'];
+
+                        const donutNames = data.collectors.map(c => c.collector_name);
+                        const donutValues = data.collectors.map(c => parseFloat(c.revenue));
+
+                        dailyDrillDonutInstance = new ApexCharts(
+                            document.getElementById('dailyDrillDonutChart'),
+                            {
+                                chart: {
+                                    type: 'donut', height: 200,
+                                    background: 'transparent',
+                                    fontFamily: "'IBM Plex Sans', sans-serif",
+                                    animations: { enabled: true, speed: 500 }
+                                },
+                                theme: { mode: donutTheme },
+                                colors: donutColors,
+                                series: donutValues,
+                                labels: donutNames,
+                                plotOptions: {
+                                    pie: {
+                                        donut: {
+                                            size: '65%',
+                                            labels: {
+                                                show: true,
+                                                total: {
+                                                    show: true,
+                                                    label: 'Total',
+                                                    color: donutLabel,
+                                                    fontSize: '12px',
+                                                    formatter: () => `Rs. ${parseFloat(data.total_revenue).toLocaleString()}`
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                legend: {
+                                    position: 'right',
+                                    fontSize: '11px',
+                                    labels: { colors: donutLabel }
+                                },
+                                dataLabels: { enabled: false },
+                                tooltip: {
+                                    y: { formatter: v => `Rs. ${v.toLocaleString()}` }
+                                }
+                            }
+                        );
+                        dailyDrillDonutInstance.render();
+
+                        // Collector table
+                        tbody.innerHTML = '';
+                        data.collectors.forEach((col, i) => {
+                            const shareVal = data.total_revenue > 0
+                                ? ((col.revenue / data.total_revenue) * 100).toFixed(1)
+                                : '0.0';
+                            const roleClass = getRoleStyle(col.collector_role);
+                            const roleLbl   = getRoleLabel(col.collector_role);
+                            const dotColor  = donutColors[i % donutColors.length];
+                            const tr = document.createElement('tr');
+                            tr.className = 'hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors';
+                            tr.innerHTML = `
+                                <td class="py-2.5 px-3">
+                                    <span class="inline-block w-2.5 h-2.5 rounded-full mr-1" style="background:${dotColor}"></span>
+                                    <span class="text-gray-400 text-xs">${i+1}</span>
+                                </td>
+                                <td class="py-2.5 px-3 font-semibold text-gray-900 dark:text-white">${escapeHtml(col.collector_name)}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 text-xs rounded-full font-medium ${roleClass}">${roleLbl}</span></td>
+                                <td class="py-2.5 px-3 text-center font-bold text-blue-600 dark:text-blue-400">${col.subs_count}</td>
+                                <td class="py-2.5 px-3 text-right font-bold text-gray-900 dark:text-white">Rs. ${parseFloat(col.revenue).toLocaleString()}</td>
+                                <td class="py-2.5 px-3 text-right text-xs font-semibold text-cyan-600 dark:text-cyan-400">${shareVal}%</td>
+                                                                <td class="py-2.5 px-3 text-center">
+                                    ${col.collector_id > 0 ? `<div class="flex items-center justify-center gap-2">
+                                        <button onclick='closeDailyDrill(); openCollectorDetail(${col.collector_id}, ${JSON.stringify(rawDate)})' class="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-800/40 text-blue-600 dark:text-blue-400 font-medium transition-colors">
+                                            <i data-lucide="eye" class="w-3 h-3"></i> Collector
+                                        </button>
+                                        <button onclick='closeDailyDrill(); openDayDetail(${JSON.stringify(rawDate)}, ${JSON.stringify(displayLabel)}, ${col.collector_id}, ${JSON.stringify(col.collector_name)})' class="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-800/40 text-emerald-600 dark:text-emerald-400 font-medium transition-colors">
+                                            <i data-lucide="users" class="w-3 h-3"></i> Customers
+                                        </button>
+                                    </div>` : '-'}
+                                </td>`;
+                            tbody.appendChild(tr);
+                        });
+                        lucide.createIcons();
+                    })
+                    .catch(() => { load.classList.add('hidden'); empty.classList.remove('hidden'); });
+            }
+
+            function closeDailyDrill() {
+                const modal = document.getElementById('dailyDrillModal');
+                const panel = document.getElementById('dailyDrillPanel');
+                modal.classList.add('opacity-0','invisible','pointer-events-none');
+                modal.classList.remove('opacity-100');
+                panel.classList.add('scale-95','opacity-0');
+                panel.classList.remove('scale-100','opacity-100');
+                document.body.style.overflow = '';
+                if (dailyDrillDonutInstance) {
+                    dailyDrillDonutInstance.destroy();
+                    dailyDrillDonutInstance = null;
+                }
+            }
+
+            let dayDetailModalInstance = null;
+
+            function openDayDetail(dayDate, displayLabel, collectorId = 0, collectorName = '') {
+                const modal   = document.getElementById('dayDetailModal');
+                const panel   = document.getElementById('dayDetailPanel');
+                const title   = document.getElementById('dayDetailTitle');
+                const subtitle = document.getElementById('dayDetailSubtitle');
+                const stats   = document.getElementById('dayDetailStats');
+                const load    = document.getElementById('dayDetailLoading');
+                const cont    = document.getElementById('dayDetailContent');
+                const empty   = document.getElementById('dayDetailEmpty');
+                const tbody   = document.getElementById('dayDetailTableBody');
+
+                modal.classList.remove('opacity-0','invisible','pointer-events-none');
+                modal.classList.add('opacity-100');
+                panel.classList.remove('scale-95','opacity-0');
+                panel.classList.add('scale-100','opacity-100');
+                load.classList.remove('hidden');
+                cont.classList.add('hidden');
+                empty.classList.add('hidden');
+                stats.innerHTML = '';
+                title.textContent = 'Loading...';
+                subtitle.textContent = collectorName ? `${collectorName} � ${displayLabel}` : displayLabel;
+                document.body.style.overflow = 'hidden';
+
+                const filterParam = <?= $filterByUser ? '`&filter_manager=' . $filterUserId . '`' : '""' ?>;
+                const collectorParam = collectorId > 0 ? `&collector_id=${collectorId}` : '';
+                fetch(`revenue_reports.php?ajax_day_detail=${dayDate}${collectorParam}${filterParam}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        load.classList.add('hidden');
+                        if (!data.success || data.records.length === 0) {
+                            empty.classList.remove('hidden');
+                            title.textContent = data.date_label || displayLabel;
+                            subtitle.textContent = collectorName ? `${collectorName} � No records` : 'No records';
+                            return;
+                        }
+
+                        title.textContent = data.date_label + ' � Customer Detail';
+                        subtitle.textContent = data.collector_name === 'All collectors'
+                            ? displayLabel
+                            : `${data.collector_name} � ${displayLabel}`;
+                        stats.innerHTML = `
+                            <span class="bg-white/20 px-3 py-1 rounded-full font-semibold">
+                                Rs. ${parseFloat(data.total_revenue).toLocaleString()}
+                            </span>
+                            <span class="bg-white/15 px-3 py-1 rounded-full">
+                                ${data.total_subs} subs
+                            </span>`;
+
+                        cont.classList.remove('hidden');
+                        tbody.innerHTML = '';
+                        data.records.forEach((r, i) => {
+                            const statusClass = r.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                            const tr = document.createElement('tr');
+                            tr.className = 'hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer';
+                            tr.addEventListener('click', () => {
+                                if (r.customer_id) {
+                                    window.open(`subscriptions_history.php?user=${r.customer_id}`, '_blank');
+                                }
+                            });
+                            tr.innerHTML = `
+                                <td class="py-2.5 px-3 text-gray-400 text-xs">${i+1}</td>
+                                <td class="py-2.5 px-3 font-semibold text-gray-900 dark:text-white">${escapeHtml(r.customer_name)}</td>
+                                <td class="py-2.5 px-3 text-gray-700 dark:text-gray-300">${escapeHtml(r.package_name)}</td>
+                                <td class="py-2.5 px-3">
+                                    <div class="font-medium text-gray-900 dark:text-white">${escapeHtml(r.collector_name)}</div>
+                                    <div class="text-[11px] text-gray-400">${escapeHtml(r.collector_role)}</div>
+                                </td>
+                                <td class="py-2.5 px-3 text-right text-gray-700 dark:text-gray-300">Rs. ${parseFloat(r.package_price).toLocaleString()}</td>
+                                <td class="py-2.5 px-3 text-right text-red-500">${r.discount > 0 ? '-Rs. ' + parseFloat(r.discount).toLocaleString() : '-'}</td>
+                                <td class="py-2.5 px-3 text-right font-bold text-gray-900 dark:text-white">Rs. ${parseFloat(r.net_amount).toLocaleString()}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">${r.status}</span></td>
+                                <td class="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(r.created_at)}</td>`;
+                            tbody.appendChild(tr);
+                        });
+                        lucide.createIcons();
+                    })
+                    .catch(() => {
+                        load.classList.add('hidden');
+                        empty.classList.remove('hidden');
+                    });
+            }
+
+            function closeDayDetail() {
+                const modal = document.getElementById('dayDetailModal');
+                const panel = document.getElementById('dayDetailPanel');
+                modal.classList.add('opacity-0','invisible','pointer-events-none');
+                modal.classList.remove('opacity-100');
+                panel.classList.add('scale-95','opacity-0');
+                panel.classList.remove('scale-100','opacity-100');
+                document.body.style.overflow = '';
+            }
+            document.getElementById('closeDailyDrill').addEventListener('click', closeDailyDrill);
+            document.getElementById('closeDailyDrillFooter').addEventListener('click', closeDailyDrill);
+            document.getElementById('dailyDrillModal').addEventListener('click', e => { if (e.target === document.getElementById('dailyDrillModal')) closeDailyDrill(); });
+            document.getElementById('closeDayDetail').addEventListener('click', closeDayDetail);
+            document.getElementById('closeDayDetailFooter').addEventListener('click', closeDayDetail);
+            document.getElementById('dayDetailModal').addEventListener('click', e => { if (e.target === document.getElementById('dayDetailModal')) closeDayDetail(); });
+
+            // Expose globally for onclick attributes in dynamic HTML
+            window.closeDailyDrill = closeDailyDrill;
+            window.openDailyDrill  = openDailyDrill;
+            window.openMonthlyDrill = openMonthlyDrill;
+            window.closeMonthlyDrill = closeMonthlyDrill;
+            window.openDayDetail = openDayDetail;
+            window.closeDayDetail = closeDayDetail;
 
             // Dynamic Theme Sync with ApexCharts
             const observer = new MutationObserver((mutations) => {
@@ -2308,3 +3390,14 @@ usort($collectors, function ($a, $b) {
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
