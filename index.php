@@ -149,7 +149,7 @@ if (!isset($_SESSION['user'])) {
 
                         $sql = "
                                 SELECT 
-                                    COALESCE(SUM(p.price - IFNULL(s.discount, 0)), 0) AS total_earnings
+                                    COALESCE(SUM(s.package_price - IFNULL(s.discount, 0)), 0) AS total_earnings
                                 FROM subscriptions s
                                 JOIN packages p ON s.package_id = p.id
                                 WHERE MONTH(s.created_at) = MONTH(CURDATE())

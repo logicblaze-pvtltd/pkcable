@@ -12,7 +12,7 @@
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fortawesome/fontawesome-free": "^7.2.0",
-    "apexcharts": "^5.15.0",
+    "apexcharts": "^5.15.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide": "^1.18.0",
@@ -20,5 +20,19 @@
     "simple-datatables": "^10.2.0",
     "sweetalert2": "^11.26.25",
     "xlsx": "^0.18.5"
-  }
+  },
+  "description": "\"# pkcable\"",
+  "main": "tailwind.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/logicblaze-pvtltd/pkcable.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/logicblaze-pvtltd/pkcable/issues"
+  },
+  "homepage": "https://github.com/logicblaze-pvtltd/pkcable#readme"
 }

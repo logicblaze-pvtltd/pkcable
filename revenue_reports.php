@@ -1685,7 +1685,7 @@ usort($collectors, function ($a, $b) {
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto px-6 pb-4">
-                    <table class="w-full text-left border-collapse text-sm">
+                    <table class="w-full text-left border-collapse text-sm overflow-y-auto">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
                             <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
                                 <th class="py-2.5 px-3">#</th>

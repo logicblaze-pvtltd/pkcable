@@ -54,15 +54,15 @@ try {
     if (!$existingUser) {
         customer_respond(false, 'Customer not found', [], 404);
     }
-
-    $duplicateEmail = $db->select('SELECT id FROM users WHERE email = ? AND id <> ?', [$email, $id]);
-    if (isset($duplicateEmail['error'])) {
-        customer_respond(false, 'Database Error: ' . $duplicateEmail['error'], [], 500);
+    if (!empty($email)) {
+        $duplicateEmail = $db->select('SELECT id FROM users WHERE email = ? AND id <> ?', [$email, $id]);
+        if (isset($duplicateEmail['error'])) {
+            customer_respond(false, 'Database Error: ' . $duplicateEmail['error'], [], 500);
+        }
+        if (!empty($duplicateEmail)) {
+            customer_respond(false, 'Email already exists', [], 409);
+        }
     }
-    if (!empty($duplicateEmail)) {
-        customer_respond(false, 'Email already exists', [], 409);
-    }
-
     if ($packageId !== null) {
         $packageExists = $db->select('SELECT id FROM packages WHERE id = ?', [$packageId]);
         if (isset($packageExists['error'])) {
