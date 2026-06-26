@@ -43,14 +43,15 @@ try {
     if ($rawPackage !== null && $rawPackage !== '' && $packageId === null) {
         customer_respond(false, 'Valid package is required', [], 422);
     }
-
-    // check duplicate email
-    $existing = $db->select('SELECT id FROM users WHERE email = ?', [$email]);
-    if (isset($existing['error'])) {
-        customer_respond(false, 'Database Error: ' . $existing['error'], [], 500);
-    }
-    if (!empty($existing)) {
-        customer_respond(false, 'Email already exists', [], 409);
+    if (!empty($email)) {
+        // check duplicate email
+        $existing = $db->select('SELECT id FROM users WHERE email = ?', [$email]);
+        if (isset($existing['error'])) {
+            customer_respond(false, 'Database Error: ' . $existing['error'], [], 500);
+        }
+        if (!empty($existing)) {
+            customer_respond(false, 'Email already exists', [], 409);
+        }
     }
 
     // validate package exists
@@ -81,7 +82,7 @@ try {
     $insertData = [
         'name' => $name,
         'email' => $email,
-        'password' => ($email ==='')?'':$passwordHash,
+        'password' => ($email === '') ? '' : $passwordHash,
         'user_role' => $userRole,
         'status' => $status,
         'package' => $packageId,
@@ -109,7 +110,6 @@ try {
         'generated_password' => $password === '' ? $plainPassword : null,
         'welcome_password' => $plainPassword,
     ]);
-
 } catch (Exception $e) {
     customer_respond(false, 'Server Error: ' . $e->getMessage(), [
         'file' => $e->getFile(),
