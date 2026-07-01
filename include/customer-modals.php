@@ -22,6 +22,18 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                 <input type="email" id="user-email" placeholder="customer@example.com" class="modal-input" autocomplete="email">
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile Number (Optional)</label>
+                <div class="relative">
+                    <input
+                        type="text"
+                        id="user-mobile"
+                        placeholder="+92 300 000 0000"
+                        class="modal-input"
+                        autocomplete="tel"
+                        maxlength="16">
+                </div>
+            </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>

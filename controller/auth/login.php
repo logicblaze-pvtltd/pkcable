@@ -15,11 +15,11 @@ try {
 
     $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
-    $email = trim($input['email'] ?? '');
+    $username = trim($input['username'] ?? '');
     $password = trim($input['password'] ?? '');
 
-    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        customer_respond(false, 'Valid email required', [], 422);
+    if ($username === '') {
+        customer_respond(false, 'Email or Mobile number required', [], 422);
     }
 
     if ($password === '') {
@@ -28,8 +28,8 @@ try {
 
     // Get user
     $user = $db->select(
-        "SELECT * FROM users WHERE email = ? LIMIT 1",
-        [$email]
+        "SELECT * FROM users WHERE email = ? OR mobile = ? LIMIT 1",
+        [$username, $username]
     );
 
     if (isset($user['error'])) {
@@ -64,6 +64,7 @@ try {
         'id' => $user['id'],
         'name' => $user['name'],
         'email' => $user['email'],
+        'mobile' => $user['mobile'],
         'role' => $user['user_role']
     ];
 

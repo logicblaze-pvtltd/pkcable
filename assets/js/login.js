@@ -1,8 +1,8 @@
 const form = document.getElementById('login-form');
-const emailInput = document.getElementById('email-input');
+const usernameInput = document.getElementById('username-input');
 const passwordInput = document.getElementById('password-input');
 
-const emailError = document.getElementById('email-error');
+const usernameError = document.getElementById('username-error');
 const passwordError = document.getElementById('password-error');
 
 const formError = document.getElementById('form-error');
@@ -26,7 +26,7 @@ const clearInputError = (input, errorEl) => {
     errorEl.classList.add('hidden');
 };
 
-emailInput.addEventListener('input', () => clearInputError(emailInput, emailError));
+usernameInput.addEventListener('input', () => clearInputError(usernameInput, usernameError));
 passwordInput.addEventListener('input', () => clearInputError(passwordInput, passwordError));
 
 function showFormError(msg) {
@@ -43,13 +43,13 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     hideFormError();
 
-    const email = emailInput.value.trim();
+    const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
 
     let valid = true;
 
-    if (!email) {
-        setInputError(emailInput, emailError, 'Email is required');
+    if (!username) {
+        setInputError(usernameInput, usernameError, 'Email or Mobile Number is required');
         valid = false;
     }
 
@@ -67,7 +67,7 @@ form.addEventListener('submit', async (e) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                email,
+                username,
                 password
             })
         });

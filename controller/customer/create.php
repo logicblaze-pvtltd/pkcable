@@ -19,7 +19,8 @@ try {
     $rawPackage = $input['package'] ?? null;
     $packageId = customer_normalize_package_id($rawPackage);
     $address = trim($input['address'] ?? '');
-
+    $rawMobile = trim($input['mobile'] ?? '');
+    $mobile = null;
     if ($name === '') {
         customer_respond(false, 'Name is required', [], 422);
     }
@@ -28,6 +29,23 @@ try {
     //     customer_respond(false, 'Valid email is required', [], 422);
     // }
 
+    if (!empty($rawMobile)) {
+        // 1. Saare non-numeric characters (spaces, +, -, brackets) khatam karein
+        $digits = preg_replace('/\D/', '', $rawMobile);
+
+        // 2. Agar shuru mein '92' hai, toh usko remove kar dein
+        if (str_starts_with($digits, '92')) {
+            $digits = substr($digits, 2);
+        }
+
+        // 3. Agar shuru mein '0' hai, toh woh bhi remove kar dein (taake clean number bache)
+        if (str_starts_with($digits, '0')) {
+            $digits = substr($digits, 1);
+        }
+
+        // 4. Ab shuru mein '0' laga kar standard Pakistani format bana lein
+        $mobile = '0' . $digits;
+    }
     if ($packageId === '' || $packageId === null) {
         customer_respond(false, 'Valid package is required', [], 422);
     }
@@ -53,7 +71,31 @@ try {
             customer_respond(false, 'Email already exists', [], 409);
         }
     }
+    if (!empty($mobile)) {
 
+        $existingMobile = $db->select(
+            'SELECT id FROM users WHERE mobile = ?',
+            [$mobile]
+        );
+
+        if (isset($existingMobile['error'])) {
+            customer_respond(
+                false,
+                'Database Error: ' . $existingMobile['error'],
+                [],
+                500
+            );
+        }
+
+        if (!empty($existingMobile)) {
+            customer_respond(
+                false,
+                'A customer with this mobile number already exists.',
+                [],
+                409
+            );
+        }
+    }
     // validate package exists
     if ($packageId !== null) {
         $packageExists = $db->select('SELECT id FROM packages WHERE id = ?', [$packageId]);
@@ -87,6 +129,7 @@ try {
         'status' => $status,
         'package' => $packageId,
         'address' => $address !== '' ? $address : null,
+        'mobile' => $mobile,
     ];
 
     $insert = $db->insert('users', $insertData);

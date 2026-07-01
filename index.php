@@ -45,7 +45,7 @@ if (!isset($_SESSION['user'])) {
             <main class="flex-1 overflow-y-auto py-3 px-8 w-full min-h-screen">
                 <!-- Breadcrumbs -->
                 <?php include "./include/breadcrumbs.php";
-                if ($_SESSION['user']['role'] !== 'customer') {
+                if ($_SESSION['user']['role'] == 'admin' || $_SESSION['user']['role'] == 'manager') {
                 ?>
                     <!-- Dashboard Cards -->
                     <div class="mb-4 grid grid-cols-1 lg:grid-cols-<?= ($_SESSION['user']['role'] === 'admin') ? 4 : 3 ?> gap-4 animate-fade-in-up">
@@ -196,6 +196,8 @@ if (!isset($_SESSION['user'])) {
                             </div>
                         </a>
                         <?php
+                        $pendingAmount = 0;
+                        $todayEarningsAmount = 0;
                         if ($_SESSION['user']['role'] === 'admin') {
                             $pending = $conn->query("
                             SELECT COALESCE(SUM(p.price), 0) AS pending_amount
@@ -257,6 +259,7 @@ if (!isset($_SESSION['user'])) {
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Active customers with subscriptions expiring soon, already expired, or not assigned yet</p>
                         </div>
                         <?php
+
                         $subscriptionAlerts = $conn->query("
                     SELECT
                         u.id AS user_id,
@@ -446,7 +449,7 @@ if (!isset($_SESSION['user'])) {
                             </table>
                         </div>
                     </div>
-                <?php } else { ?>
+                <?php } else if ($_SESSION['user']['role'] == 'customer') { ?>
                     <!-- Customer Package History Section -->
                     <div class="space-y-6">
                         <?php
@@ -938,7 +941,9 @@ if (!isset($_SESSION['user'])) {
                             text-align: center;
                         }
                     </style>
-                <?php } ?>
+                <?php } else {
+                    echo "Super Admin Dashboard is under construction.";
+                } ?>
             </main>
 
             <!-- Footer -->

@@ -111,7 +111,7 @@ function customerFormatDate($value)
     return $timestamp ? date('M j, Y', $timestamp) : $value;
 }
 
-$sql = "SELECT u.id, u.name, u.email, u.user_role, u.status, u.package, u.address, u.created_at, p.name AS package_name
+$sql = "SELECT u.id, u.name, u.email, u.mobile, u.user_role, u.status, u.package, u.address, u.created_at, p.name AS package_name
         FROM users u
         LEFT JOIN packages p ON u.package = p.id WHERE u.user_role = 'customer'";
 
@@ -210,7 +210,7 @@ if (isset($packages['error'])) {
                             <thead>
                                 <tr>
                                     <th class="col-name">Name</th>
-                                    <th class="col-email hidden md:table-cell">Email</th>
+                                    <th class="col-contact hidden md:table-cell">Contact</th>
                                     <th class="col-package hidden md:table-cell">Package</th>
                                     <th class="col-status hidden md:table-cell">Status</th>
                                     <th class="col-created hidden md:table-cell">Created</th>
@@ -223,6 +223,7 @@ if (isset($packages['error'])) {
                                     $customerIdDisplay = customerFormatId($customerId);
                                     $name = (string) (strtoupper($row['name']) ?? '');
                                     $email = (string) ($row['email'] ?? '');
+                                    $mobile = (string) ($row['mobile'] ?? '');
                                     $userRole = strtolower(trim((string) ($row['user_role'] ?? 'customer')));
                                     $status = strtolower(trim((string) ($row['status'] ?? 'active')));
                                     $packageId = isset($row['package']) && $row['package'] !== null ? (int) $row['package'] : null;
@@ -243,6 +244,7 @@ if (isset($packages['error'])) {
                                         data-id="<?= customerEsc($customerId) ?>"
                                         data-name="<?= customerEsc($name) ?>"
                                         data-email="<?= customerEsc($email) ?>"
+                                        data-mobile="<?= customerEsc($mobile) ?>"
                                         data-user-role="<?= customerEsc($userRole) ?>"
                                         data-status="<?= customerEsc($status) ?>"
                                         data-package-id="<?= customerEsc($packageId ?? '') ?>"
@@ -274,13 +276,8 @@ if (isset($packages['error'])) {
                                                         <span class="text-right text-gray-800 dark:text-gray-200 break-all"><?= customerEsc($email) ?></span>
                                                     </div>
                                                     <div class="flex items-start justify-between gap-3">
-                                                        <span class="text-gray-500 dark:text-gray-400">Package</span>
-                                                        <span class="text-right text-gray-800 dark:text-gray-200">
-                                                            <span class="block"><?= customerEsc($packageDisplay) ?></span>
-                                                            <?php if ($packageIdDisplay !== ''): ?>
-                                                                <span class="block text-xs text-gray-500 dark:text-gray-400"><?= customerEsc($packageIdDisplay) ?></span>
-                                                            <?php endif; ?>
-                                                        </span>
+                                                        <span class="text-gray-500 dark:text-gray-400">Mobile</span>
+                                                        <span class="text-right text-gray-800 dark:text-gray-200"><?= customerEsc($mobile) ?></span>
                                                     </div>
                                                     <div class="flex items-start justify-between gap-3">
                                                         <span class="text-gray-500 dark:text-gray-400">Address</span>
@@ -309,8 +306,13 @@ if (isset($packages['error'])) {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="col-email hidden md:table-cell text-gray-700 dark:text-gray-300">
-                                            <span class="block truncate"><?= customerEsc($email) ?></span>
+                                        <td class="col-contact hidden md:table-cell text-gray-700 dark:text-gray-300">
+                                            <span class="block truncate"><?= (customerEsc($email) !== '') ? customerEsc($email) : 'No email provided' ?></span>
+                                            <?php if ($mobile !== ''): ?>
+                                                <span class="block text-xs text-gray-500 dark:text-gray-400"><?= customerEsc($mobile) ?></span>
+                                            <?php else: ?>
+                                                <span class="block text-xs text-gray-500 dark:text-gray-400">No mobile number provided</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="col-package hidden md:table-cell text-gray-700 dark:text-gray-300">
                                             <span class="block font-medium"><?= customerEsc($packageDisplay) ?></span>

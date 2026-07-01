@@ -214,13 +214,12 @@ require_once './include/connection.php';
 
                     <!-- Email -->
                     <div class="mb-4">
-                        <label class="block text-gray-500 dark:text-gray-400 text-xs font-normal mb-2 uppercase tracking-wider">Email</label>
+                        <label class="block text-gray-500 dark:text-gray-400 text-xs font-normal mb-2 uppercase tracking-wider">Email or Mobile Number</label>
                         <input
-                            id="email-input"
+                            id="username-input"
                             class="ani-input w-full px-3 py-3 border rounded-[4px] focus:outline-none focus:ring-1 focus:shadow-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-400"
-                            type="email"
-                            placeholder="Enter your email"
-                            autocomplete="email" />
+                            type="text"
+                            placeholder="Enter your email or mobile number" />
                         <p id="email-error" class="hidden text-red-500 text-sm mt-1">Email is required</p>
                     </div>
 
